@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 from pathlib import Path
 from PIL import Image
-from piq import ssim, fsim, ms_ssim, iw_ssim, vif_p, sr_sim, gmsd, ms_gmsd, vsi, dss, haarpsi, mdsi
+from piq import ssim, fsim, multi_scale_ssim, information_weighted_ssim, vif_p, srsim, gmsd, multi_scale_gmsd, vsi, dss, haarpsi, mdsi
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import argparse
@@ -173,12 +173,12 @@ class Degrader:
 
         ssim_score = ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         fsim_score = fsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        ms_ssim_score = ms_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        iw_ssim_score = iw_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        ms_ssim_score = multi_scale_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        iw_ssim_score = information_weighted_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         vif_p_score = vif_p(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        sr_sim_score = sr_sim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        sr_sim_score = srsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         gmsd_score = gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        ms_gmsd_score = ms_gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        ms_gmsd_score = multi_scale_gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
         vsi_score = vsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
         dss_score = dss(sharp_tensor, degraded_tensor, data_range=1.0).item()
         haarpsi_score = haarpsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
