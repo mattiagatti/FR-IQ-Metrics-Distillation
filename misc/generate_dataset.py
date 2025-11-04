@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 from pathlib import Path
 from PIL import Image
-from piq import ssim, fsim
+from piq import ssim, fsim, ms_ssim, iw_ssim, vif_p, sr_sim, gmsd, ms_gmsd, vsi, dss, haarpsi, mdsi
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import argparse
@@ -156,7 +156,7 @@ class Degrader:
         degraded_rgb = cv2.cvtColor(degraded, cv2.COLOR_BGR2RGB)
         return degraded_rgb
 
-    def degrade_to_ssim(self, img: Image.Image):
+    def degrade_to_metrics(self, img: Image.Image):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         img_np = np.array(img)
         sharp_tensor = torch.tensor(img_np).permute(2, 0, 1).unsqueeze(0).float() / 255
@@ -173,31 +173,52 @@ class Degrader:
 
         ssim_score = ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         fsim_score = fsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        ms_ssim_score = ms_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        iw_ssim_score = iw_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        vif_p_score = vif_p(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        sr_sim_score = sr_sim(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        gmsd_score = gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        ms_gmsd_score = ms_gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        vsi_score = vsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        dss_score = dss(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        haarpsi_score = haarpsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        mdsi_score = mdsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
 
-        return Image.fromarray(degraded_np), ssim_score, fsim_score
+        metrics = {
+            'ssim': ssim_score,
+            'fsim': fsim_score,
+            'ms_ssim': ms_ssim_score,
+            'iw_ssim': iw_ssim_score,
+            'vif_p': vif_p_score,
+            'sr_sim': sr_sim_score,
+            'gmsd': gmsd_score,
+            'ms_gmsd': ms_gmsd_score,
+            'vsi': vsi_score,
+            'dss': dss_score,
+            'haarpsi': haarpsi_score,
+            'mdsi': mdsi_score
+        }
+
+        return Image.fromarray(degraded_np), metrics
 
 
 def _process_single_image(path, degrader, output_dir):
     try:
         image_name = path.stem + ".png"
         sharp_img = Image.open(path).convert('RGB')
-        degraded_img, ssim_score, fsim_score = degrader.degrade_to_ssim(sharp_img)
-
-        if not (0.0 <= ssim_score <= 1.0):
-            print(f"Skipping {path.name} due to invalid SSIM: {ssim_score}")
-            return None
+        degraded_img, metrics = degrader.degrade_to_metrics(sharp_img)
 
         save_path = output_dir / image_name
         degraded_img.save(save_path)
 
-        return image_name, ssim_score, fsim_score
+        return image_name, metrics
 
     except Exception as e:
         print(f"Failed to process {path.name}: {e}")
         return None
 
 
-def save_ssim_and_csv(degrader, output_dir, num_threads=16):
+def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -217,9 +238,9 @@ def save_ssim_and_csv(degrader, output_dir, num_threads=16):
     csv_path = output_dir / "scores.csv"
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["filename", "ssim", "fsim"])
-        for filename, ssim_score, fsim_score in scores:
-            writer.writerow([filename, ssim_score, fsim_score])
+        writer.writerow(["filename", "ssim", "fsim", "ms_ssim", "iw_ssim", "vif_p", "sr_sim", "gmsd", "ms_gmsd", "vsi", "dss", "haarpsi", "mdsi"])
+        for filename, metrics in scores:
+            writer.writerow([filename] + [metrics[key] for key in writer.fieldnames[1:]])
 
     import collections
     import math
@@ -230,20 +251,53 @@ def save_ssim_and_csv(degrader, output_dir, num_threads=16):
 
     ssim_hist = collections.Counter()
     fsim_hist = collections.Counter()
+    ms_ssim_hist = collections.Counter()
+    iw_ssim_hist = collections.Counter()
+    vif_p_hist = collections.Counter()
+    sr_sim_hist = collections.Counter()
+    gmsd_hist = collections.Counter()
+    ms_gmsd_hist = collections.Counter()
+    vsi_hist = collections.Counter()
+    dss_hist = collections.Counter()
+    haarpsi_hist = collections.Counter()
+    mdsi_hist = collections.Counter()
 
-    for _, ssim_score, fsim_score in scores:
-        ssim_hist[fine_bin(ssim_score)] += 1
-        fsim_hist[fine_bin(fsim_score)] += 1
+    for _, metrics in scores:
+        ssim_hist[fine_bin(metrics['ssim'])] += 1
+        fsim_hist[fine_bin(metrics['fsim'])] += 1
+        ms_ssim_hist[fine_bin(metrics['ms_ssim'])] += 1
+        iw_ssim_hist[fine_bin(metrics['iw_ssim'])] += 1
+        vif_p_hist[fine_bin(metrics['vif_p'])] += 1
+        sr_sim_hist[fine_bin(metrics['sr_sim'])] += 1
+        gmsd_hist[fine_bin(metrics['gmsd'])] += 1
+        ms_gmsd_hist[fine_bin(metrics['ms_gmsd'])] += 1
+        vsi_hist[fine_bin(metrics['vsi'])] += 1
+        dss_hist[fine_bin(metrics['dss'])] += 1
+        haarpsi_hist[fine_bin(metrics['haarpsi'])] += 1
+        mdsi_hist[fine_bin(metrics['mdsi'])] += 1
 
-    print("\n--- SSIM Distribution (0.01 bins) ---")
-    for i in range(0, 100):
-        bin_label = f"{i:02d}-{i + 1:02d}"
-        print(f"{bin_label}: {ssim_hist[bin_label]}")
+    metrics_hists = [
+        ("SSIM", ssim_hist),
+        ("FSIM", fsim_hist),
+        ("MS-SSIM", ms_ssim_hist),
+        ("IW-SSIM", iw_ssim_hist),
+        ("VIF-P", vif_p_hist),
+        ("SR-SIM", sr_sim_hist),
+        ("GMSD", gmsd_hist),
+        ("MS-GMSD", ms_gmsd_hist),
+        ("VSI", vsi_hist),
+        ("DSS", dss_hist),
+        ("HaarPSI", haarpsi_hist),
+        ("MDSI", mdsi_hist),
+    ]
 
-    print("\n--- FSIM Distribution (0.01 bins) ---")
-    for i in range(0, 100):
-        bin_label = f"{i:02d}-{i + 1:02d}"
-        print(f"{bin_label}: {fsim_hist[bin_label]}")
+    for title, hist in metrics_hists:
+        print(f"\n--- {title} Distribution (0.01 bins) ---")
+        for i in range(0, 100):
+            bin_label = f"{i:02d}-{i + 1:02d}"
+            print(f"{bin_label}: {hist[bin_label]}")
+    
+    
 
 
 if __name__ == "__main__":
@@ -271,4 +325,4 @@ if __name__ == "__main__":
         degrader = Degrader(root_dir=input_path, min_resolution=(384, 384), cache_file="valid_paths.txt", min_degradations=args.min_degradations, max_degradations=args.max_degradations)
 
         print(f"Processing ImageNet {name} set with {len(degrader.image_paths)} images...")
-        save_ssim_and_csv(degrader, output_dir=output_dir, num_threads=16)
+        save_metrics_and_csv(degrader, output_dir=output_dir, num_threads=16)
