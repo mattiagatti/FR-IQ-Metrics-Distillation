@@ -163,7 +163,20 @@ class Degrader:
         sharp_tensor = sharp_tensor.to(device)
 
         if random.random() < 0.005:
-            return img, 1.0, 1.0
+            return img, {
+                'ssim': 1.0,
+                'fsim': 1.0,
+                'ms_ssim': 1.0,
+                'iw_ssim': 1.0,
+                'vif_p': 1.0,
+                'sr_sim': 1.0,
+                'gmsd': 0.0,
+                'ms_gmsd': 0.0,
+                'vsi': 1.0,
+                'dss': 1.0,
+                'haarpsi': 1.0,
+                'mdsi': 1.0
+            }
 
         params = self._get_degradation_params()
         degraded_np = self._apply_degradation(img, params)
