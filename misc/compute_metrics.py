@@ -56,12 +56,12 @@ def degrade_to_metrics(img_ref: Image.Image, img_degraded: Image.Image):
 
 def _process_single_image(path_degraded, ref_image_dir):
     try:
-        ref_name = path_degraded.name.split('_')[0] + ".BMP"
+        ref_name = path_degraded.name.split('_')[0].upper() + ".BMP"
         ref_img = Image.open(ref_image_dir / ref_name).convert('RGB')
         degr_img = Image.open(path_degraded).convert('RGB')
         metrics = degrade_to_metrics(ref_img, degr_img)
 
-        return ref_name, metrics
+        return path_degraded.name, metrics
 
     except Exception as e:
         print(f"Failed to process {path_degraded.name}: {e}")
