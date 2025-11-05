@@ -234,13 +234,15 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
             result = future.result()
             if result:
                 scores.append(result)
+    
 
+    metrics_list = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'vif_p', 'sr_sim', 'gmsd', 'ms_gmsd', 'vsi', 'dss', 'haarpsi', 'mdsi']
     csv_path = output_dir / "scores.csv"
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["filename", "ssim", "fsim", "ms_ssim", "iw_ssim", "vif_p", "sr_sim", "gmsd", "ms_gmsd", "vsi", "dss", "haarpsi", "mdsi"])
+        writer.writerow(["filename"] + metrics_list)
         for filename, metrics in scores:
-            writer.writerow([filename] + [metrics[key] for key in writer.fieldnames[1:]])
+            writer.writerow([filename] + [metrics.get(key, "") for key in metrics_list])
 
     import collections
     import math
