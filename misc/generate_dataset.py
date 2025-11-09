@@ -168,10 +168,7 @@ class Degrader:
                 'fsim': 1.0,
                 'ms_ssim': 1.0,
                 'iw_ssim': 1.0,
-                'vif_p': 1.0,
                 'sr_sim': 1.0,
-                'gmsd': 0.0,
-                'ms_gmsd': 0.0,
                 'vsi': 1.0,
                 'dss': 1.0,
                 'haarpsi': 1.0,
@@ -188,10 +185,7 @@ class Degrader:
         fsim_score = fsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         ms_ssim_score = multi_scale_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         iw_ssim_score = information_weighted_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        vif_p_score = vif_p(sharp_tensor, degraded_tensor, data_range=1.0).item()
         sr_sim_score = srsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        gmsd_score = gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        ms_gmsd_score = multi_scale_gmsd(sharp_tensor, degraded_tensor, data_range=1.0).item()
         vsi_score = vsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
         dss_score = dss(sharp_tensor, degraded_tensor, data_range=1.0).item()
         haarpsi_score = haarpsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
@@ -202,10 +196,7 @@ class Degrader:
             'fsim': fsim_score,
             'ms_ssim': ms_ssim_score,
             'iw_ssim': iw_ssim_score,
-            'vif_p': vif_p_score,
             'sr_sim': sr_sim_score,
-            'gmsd': gmsd_score,
-            'ms_gmsd': ms_gmsd_score,
             'vsi': vsi_score,
             'dss': dss_score,
             'haarpsi': haarpsi_score,
@@ -249,7 +240,7 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
                 scores.append(result)
     
 
-    metrics_list = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'vif_p', 'sr_sim', 'gmsd', 'ms_gmsd', 'vsi', 'dss', 'haarpsi', 'mdsi']
+    metrics_list = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
     csv_path = output_dir / "scores.csv"
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -306,11 +297,20 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
         ("MDSI", mdsi_hist),
     ]
 
-    for title, hist in metrics_hists:
-        print(f"\n--- {title} Distribution (0.01 bins) ---")
-        for i in range(0, 100):
-            bin_label = f"{i:02d}-{i + 1:02d}"
-            print(f"{bin_label}: {hist[bin_label]}")
+    # Save histograms to a text file (and also print to stdout)
+    hist_path = output_dir / "histograms.txt"
+    with open(hist_path, "w") as f:
+        for title, hist in metrics_hists:
+            header = f"\n--- {title} Distribution (0.01 bins) ---\n"
+            #print(header.strip())
+            f.write(header)
+            for i in range(0, 100):
+                bin_label = f"{i:02d}-{i + 1:02d}"
+                count = hist.get(bin_label, 0)
+                line = f"{bin_label}: {count}\n"
+                #print(line.strip())
+                f.write(line)
+    print(f"\n[Saved] Histograms written to {hist_path}")
     
     
 

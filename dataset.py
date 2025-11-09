@@ -22,24 +22,31 @@ class SIMDataset(Dataset):
             for _, row in self.scores_df.iterrows()
         ]
 
-        self.ssim_scores = torch.tensor(self.scores_df["ssim"].values, dtype=torch.float32)
-        self.fsim_scores = torch.tensor(self.scores_df["fsim"].values, dtype=torch.float32)
+        metrics = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+        for m in metrics:
+            if m not in self.scores_df.columns:
+                raise KeyError(f"Missing '{m}' column in scores.csv")
+            setattr(self, f"{m}_scores", torch.tensor(self.scores_df[m].values, dtype=torch.float32))
+
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
+        # Load image
         path = self.image_paths[idx]
         img = Image.open(path).convert('RGB')
 
         if self.transform:
             img_tensor = self.transform(img)
         else:
-            img_tensor = torch.tensor(np.array(img)).permute(2, 0, 1).float() / 255
+            img_tensor = torch.tensor(np.array(img)).permute(2, 0, 1).float() / 255.0
 
-        # Get SSIM and FSIM scores
-        scores = self.scores_df.iloc[idx]
-        ssim_score = torch.tensor([scores["ssim"]], dtype=torch.float32)
-        fsim_score = torch.tensor([scores["fsim"]], dtype=torch.float32)
+        # Build metrics dictionary
+        scores_row = self.scores_df.iloc[idx]
+        metrics_dict = {
+            m: torch.tensor(scores_row[m], dtype=torch.float32)
+            for m in self.metrics
+        }
 
-        return img_tensor, ssim_score, fsim_score
+        return img_tensor, metrics_dict
