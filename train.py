@@ -113,6 +113,8 @@ parser.add_argument('--target', choices=ALL_METRICS, required=True,
                     help="Metric to predict (model outputs one scalar).")
 parser.add_argument('--min_score', type=float, default=0.0)
 parser.add_argument('--max_score', type=float, default=1.0)
+parser.add_argument('--patience', type=int, default=10)
+parser.add_argument('--experiment_path', type=str, default="/exp")
 args = parser.parse_args()
 
 
@@ -121,6 +123,7 @@ args = parser.parse_args()
 # --------------------------------------------------------------------------- #
 set_global_seed(42)
 g = torch.Generator().manual_seed(42)
+epochs_without_improvement = 0
 
 model_map = {
     'swinv2': 'swinv2_base_window12to24_192to384.ms_in22k_ft_in1k',
@@ -145,7 +148,6 @@ range_suffix = f"{int(min_score * 100):03d}{int(max_score * 100):03d}"
 # 4.  Dataset Loading and Filtering
 # --------------------------------------------------------------------------- #
 train_path = Path(args.train_path)
-train_path = train_path.parent / f"{train_path.stem}_{range_suffix}"
 
 train_dataset_full = SIMDataset(train_path, transform=transform)
 
@@ -155,12 +157,11 @@ filtered_train_indices = [i for i, s in enumerate(scores_full)
                           if min_score <= float(s.item()) <= max_score]
 print(f"Filtered training set to {len(filtered_train_indices)} samples "
       f"with {min_score} <= {args.target.upper()} <= {max_score}")
-train_dataset = Subset(train_dataset_full, filtered_train_indices)
+train_subset = Subset(train_dataset_full, filtered_train_indices)
 
 # --- Validation split ---
 if args.val_path:
     val_path = Path(args.val_path)
-    val_path = val_path.parent / f"{val_path.stem}_{range_suffix}"
     val_dataset_full = SIMDataset(val_path, transform=transform)
 
     val_scores_full = _get_scores_tensor_from_dataset(val_dataset_full, args.target)
@@ -217,7 +218,7 @@ else:
     train_indices = list(all_indices - set(val_indices))
     val_subset = Subset(train_dataset, val_indices)
 
-train_subset = Subset(train_dataset, train_indices)
+    train_subset = Subset(train_dataset, train_indices)
 val_loader = DataLoader(val_subset, batch_size=args.batch_size, shuffle=False,
                         num_workers=8, pin_memory=True, generator=g)
 
@@ -234,7 +235,7 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
 r2_scores = []
 checkpoint_name = f"{args.model}_{args.target}_{range_suffix}"
-checkpoint_dir = Path("exp") / checkpoint_name
+checkpoint_dir = Path(args.experiment_path) / checkpoint_name
 checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
 best_model_path = None
@@ -244,11 +245,14 @@ start_epoch = 0
 
 # Resume if checkpoint exists
 if last_checkpoint_path.exists():
+    print ("-----The experiment was already done-------")
+    exit()
     print(f"Found checkpoint: {last_checkpoint_path}")
     checkpoint = torch.load(last_checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    print (checkpoint.keys())
     best_r2 = checkpoint.get('best_r2', -np.inf)
     start_epoch = checkpoint.get('epoch', 0)
     print(f"Resuming from epoch {start_epoch}, best R2: {best_r2:.4f}")
@@ -330,6 +334,7 @@ for epoch in range(start_epoch, args.epochs):
     best_epoch = epoch + 1
     if r2 > best_r2:
         best_r2 = r2
+        epochs_without_improvement = 0
         best_model_path = checkpoint_dir / "best.pth"
         torch.save(model.state_dict(), best_model_path)
         print(f"New best model saved at {best_model_path.name}")
@@ -369,7 +374,13 @@ for epoch in range(start_epoch, args.epochs):
             f"denorm_pred_{args.target}": denorm_y_pred
         }
         pd.DataFrame(csv_data).to_csv(checkpoint_dir / "predictions.csv", index=False)
-
+    else:
+        epochs_without_improvement += 1
+        print(f"No improvement in validation r2. counter {epochs_without_improvement}/{args.patience}")
+    
+    if epochs_without_improvement >= args.patience:
+        print("Early stopping: no improvement for 10 epochs.")
+        break
     # ----------------------------------------------------------------------- #
     # Save Checkpoint and R2 Progress
     # ----------------------------------------------------------------------- #

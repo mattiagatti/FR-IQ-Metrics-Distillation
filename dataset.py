@@ -22,8 +22,8 @@ class SIMDataset(Dataset):
             for _, row in self.scores_df.iterrows()
         ]
 
-        metrics = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
-        for m in metrics:
+        self.metrics = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+        for m in self.metrics:
             if m not in self.scores_df.columns:
                 raise KeyError(f"Missing '{m}' column in scores.csv")
             setattr(self, f"{m}_scores", torch.tensor(self.scores_df[m].values, dtype=torch.float32))
