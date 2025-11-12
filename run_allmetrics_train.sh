@@ -4,7 +4,7 @@ set -euo pipefail
 # ================================================================
 # Script to launch sequential trainings for all image quality metrics.
 # Example usage:
-#   ./run_all_metrics.sh 0     # Use GPU 0
+#   ./run_all_metrics_train.sh 0     # Use GPU 0
 # ================================================================
 
 # -------------------- CONFIGURATION -------------------- #
