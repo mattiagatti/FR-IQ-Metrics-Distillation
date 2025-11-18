@@ -1,0 +1,11 @@
+
+# Configuration for testing on TID 13K dataset (degraded with our strategy) with model trained on ImageNet (degraded with our strategy)
+
+
+CHECKPOINT_BASE: "/home/jovyan/nfs/lsgroi/exp/exp_IMAGENET"   # Base dir with checkpoints
+TEST_PATH: "/home/jovyan/nfs/lsgroi/Dataset/Dataset_TID_13/degraded_images_our"       # Dataset path
+IMAGE_SIZE: 384
+BATCH_SIZE: 32
+MIN_SCORE: 0.0
+MAX_SAMPLES_PER_BIN: 50
+OUTPUT_DIR: "./test_results/Dataset_TID_13_our_our"

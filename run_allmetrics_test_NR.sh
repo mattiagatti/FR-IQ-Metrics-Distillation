@@ -11,21 +11,11 @@ set -euo pipefail
 # User configuration
 # -------------------------------
 MODEL="tinyvit"                             # Model to test
-CHECKPOINT_BASE="/home/jovyan/nfs/lsgroi/exp/exp_IMAGENET_New"   # Base dir with checkpoints
 TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/testNR.py"   # Path to your test script
-TEST_PATH="/home/jovyan/nfs/lsgroi/Dataset/KonIQ-10k"       # Dataset path
-IMAGE_SIZE=384
-BATCH_SIZE=128
-MIN_SCORE=0.0
-MAX_SAMPLES_PER_BIN=50
-OUTPUT_DIR="./test_results/KonIQ-10k_their"
-
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_KonIQ10k_TID13their.yaml"  # Config file path
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
 
-# Log directory
-LOG_DIR="test_logs"
-mkdir -p "${LOG_DIR}"
 
 # -------------------- GPU SELECTION -------------------- #
 
@@ -43,39 +33,21 @@ for METRIC in "${METRICS[@]}"; do
   echo "Starting evaluation for metric: ${METRIC}"
   echo "============================================================"
 
-  # Automatically detect the checkpoint path (model_metric_*.pth)
-  CHECKPOINT_PATH=$(find "${CHECKPOINT_BASE}" -type f -name "best.pth" -path "*${MODEL}_${METRIC}_*" | head -n 1 || true)
-
-  if [[ -z "${CHECKPOINT_PATH}" ]]; then
-    echo "No checkpoint found for ${MODEL}_${METRIC}, skipping."
-    continue
-  fi
-
-  echo "Using checkpoint: ${CHECKPOINT_PATH}"
-
-  # Build log file
-  LOG_FILE="${LOG_DIR}/${MODEL}_${METRIC}_test.log"
-
   # Build command
   CMD="python3 ${TEST_SCRIPT} \
       --model ${MODEL} \
       --checkpoint ${CHECKPOINT_PATH} \
-      --test_path ${TEST_PATH} \
       --metric ${METRIC} \
-      --batch_size ${BATCH_SIZE} \
-      --image_size ${IMAGE_SIZE} \
-      --min_score ${MIN_SCORE} \
-      --output_dir ${OUTPUT_DIR} \
-      --max_samples_per_bin ${MAX_SAMPLES_PER_BIN} "
+      --config_path ${CONFIG_PATH}"
 
   echo "Running command:"
   echo "${CMD}"
   echo "------------------------------------------------------------"
 
   # Run and log output
-  ${CMD} 2>&1 | tee "${LOG_FILE}"
+  "${CMD[@]}"
 
-  echo "Finished evaluation for ${METRIC}. Log saved to ${LOG_FILE}"
+  echo "Finished evaluation for ${METRIC}."
   echo
 done
 

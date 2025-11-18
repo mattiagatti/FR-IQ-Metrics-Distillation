@@ -56,3 +56,44 @@ class SIMDataset(Dataset):
             metrics_dict['mos'] = torch.tensor(scores_row['mos'], dtype=torch.float32)
 
         return img_tensor, metrics_dict
+
+class KonIQDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = Path(root_dir)
+        self.transform = transform
+        
+
+        # Load scores.csv
+        csv_path = self.root_dir / "scores.csv"
+        if not csv_path.exists():
+            raise FileNotFoundError(f"Missing scores.csv in {self.root_dir}")
+
+        self.scores_df = pd.read_csv(csv_path)
+        self.image_paths = [
+            self.root_dir / row["image_name"]
+            for _, row in self.scores_df.iterrows()
+        ]
+
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        # Load image
+        path = self.image_paths[idx]
+        img = Image.open(path).convert('RGB')
+
+        if self.transform:
+            img_tensor = self.transform(img)
+        else:
+            img_tensor = torch.tensor(np.array(img)).permute(2, 0, 1).float() / 255.0
+
+        # Build metrics dictionary
+        scores_row = self.scores_df.iloc[idx]
+        mos = torch.tensor(scores_row['MOS'], dtype=torch.float32)
+
+        #normalizaion to 0-1
+        mos=(mos-1)/4
+        metrics_dict={}
+        metrics_dict['mos'] = mos
+        return img_tensor, metrics_dict

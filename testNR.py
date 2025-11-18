@@ -2,7 +2,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import yaml
 from pathlib import Path
 from tqdm import tqdm
 from torchvision import transforms
@@ -29,7 +29,7 @@ set_seed()
 
 
 # --------------------------------------------------------------------------- #
-# 2. CLI arguments
+# 2. CLI arguments and yaml config
 # --------------------------------------------------------------------------- #
 ALL_METRICS = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim',
                'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
@@ -39,17 +39,31 @@ parser.add_argument('--model', type=str, default='tinyvit',
                     choices=['swinv2', 'mobilevitv2', 'resnet50v2', 'vit',
                              'efficientnet', 'mobilenetv3', 'tinyvit'],
                     help='Model architecture to use')
-parser.add_argument('--checkpoint', type=str, required=True, help='Path to model checkpoint (.pth)')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch size for evaluation')
-parser.add_argument('--image_size', type=int, default=384, help='Input image size (pixels)')
-parser.add_argument('--test_path', type=str, required=True, help='Path to test dataset directory')
+parser.add_argument('--config_path', type=str, required=True,
+                    help='Path to YAML config file with test settings')
 parser.add_argument('--metric', type=str, required=True, choices=ALL_METRICS, help='Metric to predict')
-parser.add_argument('--min_score', type=float, default=0.0, help='Minimum score to include in evaluation')
-parser.add_argument('--output_dir', type=str, required=True, help='Output dir where will be stored the results and plots')
-parser.add_argument('--max_samples_per_bin', type=int, default=50,
-                    help='Maximum samples per bin for hexbin plot')
 args = parser.parse_args()
 
+if args.config_path:
+    cfg_path = Path(args.config_path)
+    if not cfg_path.exists():
+        raise FileNotFoundError(f"Config file not found: {cfg_path}")
+    with cfg_path.open('r') as f:
+        cfg = yaml.safe_load(f) 
+    # normalize keys to lowercase and map to args if present
+    for k, v in cfg.items():
+        key = k.lower()
+        if key == 'checkpoint_base':
+            base = Path(v)
+            if not base.exists():
+                raise FileNotFoundError(f"Checkpoint base not found: {base}")
+            subdir = f"{args.model}_{args.metric}_000100"
+            checkpoint_path = base / subdir / "best.pth"
+            if not checkpoint_path.exists():
+                raise FileNotFoundError(f"Expected checkpoint not found: {checkpoint_path}")
+            setattr(args, 'checkpoint', str(checkpoint_path))
+        else:
+            setattr(args, key, v)
 
 # --------------------------------------------------------------------------- #
 # 3. Model loading

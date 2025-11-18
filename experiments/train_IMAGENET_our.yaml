@@ -1,0 +1,21 @@
+# Configuration for training on degraded ImageNet dataset
+
+
+# Degradation: Gaussian_blur, motion_blur, jpeg_compression, brightness, contrast, saturation, additive_noise, chromatic_aberration, pixelation, color_cast
+# Random selection of number of degradations applied per image during training, level randomly selected.
+
+
+
+TRAIN_PATH: "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/train"
+VAL_PATH: "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/val"
+
+EPOCHS: 100
+BATCH_SIZE: 32
+IMAGE_SIZE: 384
+LR: 1e-4
+TRAIN_TARGET_PER_BIN: 100
+VAL_TARGET_PER_BIN: 100
+MIN_SCORE: 0.0
+MAX_SCORE: 1.0
+PATIENCE: 10
+EXPERIMENT_PATH: "/home/jovyan/nfs/lsgroi/exp/exp_IMAGENET"

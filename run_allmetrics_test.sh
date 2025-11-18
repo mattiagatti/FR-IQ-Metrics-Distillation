@@ -3,6 +3,7 @@ set -euo pipefail
 
 # ================================================================
 # Script to launch sequential trainings for all image quality metrics.
+# Logs to stdout only (no files).
 # Example usage:
 #   ./run_all_metrics_test.sh 0     # Use GPU 0
 # ================================================================
@@ -11,20 +12,11 @@ set -euo pipefail
 # User configuration
 # -------------------------------
 MODEL="tinyvit"                             # Model to test
-CHECKPOINT_BASE="/home/jovyan/nfs/lsgroi/exp"   # Base dir with checkpoints
 TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/test.py"   # Path to your test script
-TEST_PATH="/home/jovyan/nfs/lsgroi/Dataset_TID_13/distorted_images"       # Dataset path
-IMAGE_SIZE=384
-BATCH_SIZE=32
-MIN_SCORE=0.0
-MAX_SAMPLES_PER_BIN=50
-
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
-
-# Log directory
-LOG_DIR="test_logs"
-mkdir -p "${LOG_DIR}"
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_TID13our_IMAGENETour.yaml"  # Config file path
+ALSO_MOS=true                             # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #
 
@@ -42,64 +34,43 @@ for METRIC in "${METRICS[@]}"; do
   echo "Starting evaluation for metric: ${METRIC}"
   echo "============================================================"
 
-  # Automatically detect the checkpoint path (model_metric_*.pth)
-  CHECKPOINT_PATH=$(find "${CHECKPOINT_BASE}" -type f -name "best.pth" -path "*${MODEL}_${METRIC}_*" | head -n 1 || true)
-
-  if [[ -z "${CHECKPOINT_PATH}" ]]; then
-    echo "No checkpoint found for ${MODEL}_${METRIC}, skipping."
-    continue
-  fi
-
-  echo "Using checkpoint: ${CHECKPOINT_PATH}"
-
-  # Build log file
-  LOG_FILE="${LOG_DIR}/${MODEL}_${METRIC}_test.log"
-
-  # Build command
-  CMD="python3 ${TEST_SCRIPT} \
-      --model ${MODEL} \
-      --checkpoint ${CHECKPOINT_PATH} \
-      --test_path ${TEST_PATH} \
-      --metric ${METRIC} \
-      --batch_size ${BATCH_SIZE} \
-      --image_size ${IMAGE_SIZE} \
-      --min_score ${MIN_SCORE} \
-      --max_samples_per_bin ${MAX_SAMPLES_PER_BIN} \
-      --mos false"
+  CMD=(python3 "${TEST_SCRIPT}" \
+      --model "${MODEL}" \
+      --metric "${METRIC}" \
+      --config_path "${CONFIG_PATH}" \
+      --mos false)
 
   echo "Running command:"
-  echo "${CMD}"
+  echo "${CMD[@]}"
   echo "------------------------------------------------------------"
 
-  # Run and log output
-  ${CMD} 2>&1 | tee "${LOG_FILE}"
+  # Run and print output to stdout
+  "${CMD[@]}"
 
-  echo "Finished evaluation for ${METRIC}. Log saved to ${LOG_FILE}"
+  echo "Finished evaluation for ${METRIC}."
 
-  CMD="python3 ${TEST_SCRIPT} \
-      --model ${MODEL} \
-      --checkpoint ${CHECKPOINT_PATH} \
-      --test_path ${TEST_PATH} \
-      --metric ${METRIC} \
-      --batch_size ${BATCH_SIZE} \
-      --image_size ${IMAGE_SIZE} \
-      --min_score ${MIN_SCORE} \
-      --max_samples_per_bin ${MAX_SAMPLES_PER_BIN} \
-      --mos true"
+  # If ALSO_MOS is true, run again with MOS
+  if [ "${ALSO_MOS}" = true ]; then
+    echo "Starting evaluation for metric: ${METRIC} with MOS"
+    CMD=(python3 "${TEST_SCRIPT}" \
+      --model "${MODEL}" \
+      --metric "${METRIC}" \
+      --config_path "${CONFIG_PATH}" \
+      --mos true)
 
+    echo "▶️  Running command:"
+    echo "${CMD[@]}"
+    echo "------------------------------------------------------------"
 
-  echo "▶️  Running command:"
-  echo "${CMD}"
-  echo "------------------------------------------------------------"
+    # Run and print output to stdout
+    "${CMD[@]}"
 
-  # Run and log output
-  ${CMD} 2>&1 | tee "${LOG_FILE}"
+    echo "Finished evaluation for ${METRIC} with MOS."
+  fi
 
-  echo "Finished evaluation for ${METRIC} with MOS. Log saved to ${LOG_FILE}"
   echo
 done
 
 echo "============================================================"
 echo "All evaluations completed successfully."
-echo "Logs saved in: ${LOG_DIR}/"
 echo "============================================================"

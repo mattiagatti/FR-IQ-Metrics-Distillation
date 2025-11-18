@@ -20,6 +20,8 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 from torchvision import transforms
+import json
+import yaml
 
 
 # --------------------------------------------------------------------------- #
@@ -101,21 +103,52 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='tinyvit',
                     choices=['swinv2', 'mobilevitv2', 'resnet50v2', 'vit',
                              'efficientnet', 'mobilenetv3', 'tinyvit'])
-parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--image_size', type=int, default=384)
-parser.add_argument('--lr', type=float, default=1e-4)
-parser.add_argument('--train_path', required=True)
-parser.add_argument('--val_path', default=None)
-parser.add_argument('--train_target_per_bin', type=int, default=100)
-parser.add_argument('--val_target_per_bin', type=int, default=100)
 parser.add_argument('--target', choices=ALL_METRICS, required=True,
                     help="Metric to predict (model outputs one scalar).")
-parser.add_argument('--min_score', type=float, default=0.0)
-parser.add_argument('--max_score', type=float, default=1.0)
-parser.add_argument('--patience', type=int, default=10)
-parser.add_argument('--experiment_path', type=str, default="/exp")
+parser.add_argument('--config_path', required=True,
+                    help="Path to the configuration file.")
 args = parser.parse_args()
+
+# Load training configuration from the config_path and inject into args
+
+conf_path = Path(args.config_path)
+if not conf_path.exists():
+    raise FileNotFoundError(f"Config file not found: {conf_path}")
+
+# Try JSON first, then YAML if available
+cfg = None
+with conf_path.open('r') as f:
+    cfg = yaml.safe_load(f)
+# Defaults (previous CLI defaults)
+_defaults = {
+    'epochs': 50,
+    'batch_size': 32,
+    'image_size': 384,
+    'lr': 1e-4,
+    'train_path': None,
+    'val_path': None,
+    'train_target_per_bin': 100,
+    'val_target_per_bin': 100,
+    'min_score': 0.0,
+    'max_score': 1.0,
+    'patience': 10,
+    'experiment_path': "/exp"
+}
+
+# Inject config values into args (config takes precedence over defaults)
+for key, default in _defaults.items():
+    if key in cfg:
+        val = cfg[key]
+    else:
+        val = default
+    setattr(args, key, val)
+
+# Basic validation
+if args.train_path is None:
+    raise ValueError("train_path must be provided in the config file.")
+
+print(f"Loaded config from {conf_path}")
+
 
 
 # --------------------------------------------------------------------------- #
@@ -200,8 +233,8 @@ else:
     bin_size = 1.0 / num_bins
 
     bin_to_indices = defaultdict(list)
-    for idx in range(len(train_dataset)):
-        global_idx = train_dataset.indices[idx]
+    for idx in range(len(train_dataset_full)):
+        global_idx = train_dataset_full.indices[idx]
         score = float(scores_full[global_idx].item())
         bin_idx = min(int(score / bin_size), num_bins - 1)
         bin_to_indices[bin_idx].append(idx)
@@ -214,11 +247,11 @@ else:
     if len(val_indices) == 0:
         raise ValueError("No validation bins had enough samples.")
 
-    all_indices = set(range(len(train_dataset)))
+    all_indices = set(range(len(train_dataset_full)))
     train_indices = list(all_indices - set(val_indices))
-    val_subset = Subset(train_dataset, val_indices)
+    val_subset = Subset(train_dataset_full, val_indices)
 
-    train_subset = Subset(train_dataset, train_indices)
+    train_subset = Subset(train_dataset_full, train_indices)
 val_loader = DataLoader(val_subset, batch_size=args.batch_size, shuffle=False,
                         num_workers=8, pin_memory=True, generator=g)
 

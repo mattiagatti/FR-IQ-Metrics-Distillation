@@ -2,7 +2,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import yaml
 from pathlib import Path
 from tqdm import tqdm
 from torchvision import transforms
@@ -29,7 +29,7 @@ set_seed()
 
 
 # --------------------------------------------------------------------------- #
-# 2. CLI arguments
+# 2. CLI arguments and yaml config
 # --------------------------------------------------------------------------- #
 ALL_METRICS = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim',
                'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
@@ -39,16 +39,38 @@ parser.add_argument('--model', type=str, default='tinyvit',
                     choices=['swinv2', 'mobilevitv2', 'resnet50v2', 'vit',
                              'efficientnet', 'mobilenetv3', 'tinyvit'],
                     help='Model architecture to use')
-parser.add_argument('--checkpoint', type=str, required=True, help='Path to model checkpoint (.pth)')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch size for evaluation')
-parser.add_argument('--image_size', type=int, default=384, help='Input image size (pixels)')
-parser.add_argument('--test_path', type=str, required=True, help='Path to test dataset directory')
+parser.add_argument('--config_path', type=str, required=True,
+                    help='Path to YAML config file with test settings')
 parser.add_argument('--metric', type=str, required=True, choices=ALL_METRICS, help='Metric to predict')
-parser.add_argument('--mos', type=bool, default=False, help='Compare results with the MOS scores instead of FR metrics')
-parser.add_argument('--min_score', type=float, default=0.0, help='Minimum score to include in evaluation')
-parser.add_argument('--max_samples_per_bin', type=int, default=50,
-                    help='Maximum samples per bin for hexbin plot')
+parser.add_argument(
+    '--mos', type=lambda x: str(x).lower() in ['true', '1', 'yes'],
+    default=False,
+    help='Use MOS scores instead of FR metrics (true/false)'
+)
+
 args = parser.parse_args()
+
+if args.config_path:
+    cfg_path = Path(args.config_path)
+    if not cfg_path.exists():
+        raise FileNotFoundError(f"Config file not found: {cfg_path}")
+    with cfg_path.open('r') as f:
+        cfg = yaml.safe_load(f) 
+    # normalize keys to lowercase and map to args if present
+    for k, v in cfg.items():
+        key = k.lower()
+        if key == 'checkpoint_base':
+            base = Path(v)
+            if not base.exists():
+                raise FileNotFoundError(f"Checkpoint base not found: {base}")
+            subdir = f"{args.model}_{args.metric}_000100"
+            checkpoint_path = base / subdir / "best.pth"
+            if not checkpoint_path.exists():
+                raise FileNotFoundError(f"Expected checkpoint not found: {checkpoint_path}")
+            setattr(args, 'checkpoint', str(checkpoint_path))
+        else:
+            setattr(args, key, v)
+
 
 
 # --------------------------------------------------------------------------- #
@@ -70,6 +92,7 @@ model = RegressionModel(model_map[args.model]).to(device)
 
 # Load model checkpoint
 state = torch.load(args.checkpoint, map_location=device)
+print(f"checkpoint loaded from {args.checkpoint}")
 if "model_state_dict" in state:
     model.load_state_dict(state["model_state_dict"])
 else:
@@ -80,14 +103,13 @@ model.eval()
 # --------------------------------------------------------------------------- #
 # 4. Dataset loading
 # --------------------------------------------------------------------------- #
-dataset_name = Path(args.test_path).parent.name
 test_path = Path(args.test_path)
 transform = transforms.Compose([
     transforms.Resize((args.image_size, args.image_size)),
     transforms.ToTensor()
 ])
 
-test_dataset_full = SIMDataset(test_path, transform=transform)
+test_dataset_full = SIMDataset(test_path, transform=transform, MOS=args.mos)
 
 # Dynamically get the selected metric tensor
 attr = f"{args.metric}_scores"
@@ -104,11 +126,11 @@ if not hasattr(test_dataset_full, attr):
 all_scores = getattr(test_dataset_full, attr)
 
 # Filter dataset by minimum score
-selected_indices = [i for i, s in enumerate(all_scores) if s >= args.min_score]
-print(f"Filtered test set to {len(selected_indices)} samples with {args.metric.upper()} >= {args.min_score}")
+# selected_indices = [i for i, s in enumerate(all_scores) if s >= args.min_score]
+# print(f"Filtered test set to {len(selected_indices)} samples with {args.metric.upper()} >= {args.min_score}")
 
-test_dataset = Subset(test_dataset_full, selected_indices)
-test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+# test_dataset = Subset(test_dataset_full, selected_indices)
+test_loader = DataLoader(test_dataset_full, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
 
 # --------------------------------------------------------------------------- #
@@ -167,29 +189,35 @@ kendall_corr, _ = kendalltau(y_true, y_pred)
 # --------------------------------------------------------------------------- #
 # 8. Visualization
 # --------------------------------------------------------------------------- #
-plot_dir = Path(f"test_results/{dataset_name}")
+plot_dir = Path(args.output_dir)
 plot_dir.mkdir(parents=True, exist_ok=True)
 
 plt.figure(figsize=(6, 6))
 hb = plt.hexbin(y_true_plot, y_pred_plot, gridsize=50, cmap='viridis', mincnt=1)
 plt.colorbar(hb, label='Count')
-plt.xlabel(f"True {args.target.upper()}")
-plt.ylabel(f"Predicted {args.target.upper()}")
-plt.title(f"{args.model} on {args.target.upper()}  |  R²={r2:.3f}")
+if args.mos:
+    plt.xlabel(f"MOS")
+else:
+    plt.xlabel(f"True {args.metric.upper()}")
+plt.ylabel(f"Predicted {args.metric.upper()}")
+if args.mos:
+    plt.title(f"{args.model} on {args.metric.upper()} AGAINST MOS  |  R²={r2:.3f}")
+else:
+    plt.title(f"{args.model} on {args.metric.upper()}  |  R²={r2:.3f}")
 plt.plot([args.min_score, 1], [args.min_score, 1], 'r--', linewidth=1)
 plt.tight_layout()
 
 if args.mos:
-    plot_path = plot_dir / f"hexbin_{args.model}_{args.target}_MOS_min{args.min_score}.pdf"
+    plot_path = plot_dir / f"hexbin_{args.model}_{args.metric}_MOS_min{args.min_score}.pdf"
 else:
-    plot_path = plot_dir / f"hexbin_{args.model}_{args.target}_min{args.min_score}.pdf"
+    plot_path = plot_dir / f"hexbin_{args.model}_{args.metric}_min{args.min_score}.pdf"
 plt.savefig(plot_path, dpi=300)
 plt.show()
 
 # --------------------------------------------------------------------------- #
 # 9. Print and save results
 # --------------------------------------------------------------------------- #
-print(f"\n=== Test Results for {args.model} on {args.target.upper()} ===")
+print(f"\n=== Test Results for {args.model} on {args.metric.upper()} ===")
 print(f"R2 Score       : {r2:.4f}")
 print(f"MAE            : {mae:.4f}")
 print(f"MSE            : {mse:.4f}")
@@ -199,12 +227,12 @@ print(f"Kendall τ      : {kendall_corr:.4f}")
 
 # Save results to text file
 if args.mos:
-    results_path = plot_dir / f"results_{args.model}_{args.target}_MOS.txt"
+    results_path = plot_dir / f"results_{args.model}_{args.metric}_MOS.txt"
 else:
-    results_path = plot_dir / f"results_{args.model}_{args.target}.txt"
+    results_path = plot_dir / f"results_{args.model}_{args.metric}.txt"
 with open(results_path, "w") as f:
     f.write(f"Model       : {args.model}\n")
-    f.write(f"Target      : {args.target}\n")
+    f.write(f"Target      : {args.metric}\n")
     f.write(f"R2 Score    : {r2:.4f}\n")
     f.write(f"MAE         : {mae:.4f}\n")
     f.write(f"MSE         : {mse:.4f}\n")
@@ -212,4 +240,4 @@ with open(results_path, "w") as f:
     f.write(f"Spearman ρ  : {spearman_corr:.4f}\n")
     f.write(f"Kendall τ   : {kendall_corr:.4f}\n")
 
-print(f"✅ Results saved to: {results_path}")
+print(f"Results saved to: {results_path}")
