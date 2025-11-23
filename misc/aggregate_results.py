@@ -6,70 +6,72 @@ from pathlib import Path
 # -------------------------------------------------------------------
 # Configuration
 # -------------------------------------------------------------------
-EXP_DIR = Path("exp")  # root directory containing all experiment folders
-OUTPUT_DIR = Path("exp_summary")
+RESULTS_DIRS_TO_COMBINE = [
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_Combined_IQA"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_our"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_their"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_TIDtheir"),
+]
+
+OUTPUT_DIR = Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_summary")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# Regex to extract model and metric from folder name: model_metric_range
-pattern = re.compile(r"^(?P<model>[^_]+)_(?P<metric>[^_]+)")
+# pattern per estrarre la metrica
+pattern = r"results_[^_]+_([^_]+(?:_[^_]+)?)_MOS\.txt"
 
-# Prepare containers
-data_epoch = {}
-data_r2 = {}
-data_mae = {}
-data_rmse = {}
+# Tabelle finali: righe = experiment_name, colonne = metric
+r2_table = {}
+spearman_table = {}
+kendall_table = {}
 
 # -------------------------------------------------------------------
 # Parse all experiments
 # -------------------------------------------------------------------
-for exp_folder in sorted(EXP_DIR.iterdir()):
-    if not exp_folder.is_dir():
-        continue
-    result_file = exp_folder / "best_results.txt"
-    if not result_file.exists():
-        print(f"⚠️ Skipping {exp_folder.name}: no best_results.txt")
-        continue
+for exp in RESULTS_DIRS_TO_COMBINE:
 
-    # Extract model + metric from folder name
-    m = pattern.match(exp_folder.name)
-    if not m:
-        print(f"⚠️ Skipping {exp_folder.name}: unexpected name format")
-        continue
+    experiment_name = exp.name       # esempio: KonIQ-10k_our
+    r2_table.setdefault(experiment_name, {})
+    spearman_table.setdefault(experiment_name, {})
+    kendall_table.setdefault(experiment_name, {})
 
-    model = m.group("model")
-    metric = m.group("metric")
+    for result_file in sorted(exp.iterdir()):
+        if not result_file.name.startswith("results"):
+            continue
 
-    # Read file contents
-    content = result_file.read_text().strip().splitlines()
-    values = {}
-    for line in content:
-        if "Best Epoch" in line:
-            values["epoch"] = int(line.split(":")[1].strip())
-        elif "Best R2" in line:
-            values["r2"] = float(line.split(":")[1].strip())
-        elif "Best MAE" in line:
-            values["mae"] = float(line.split(":")[1].strip())
-        elif "Best RMSE" in line:
-            values["rmse"] = float(line.split(":")[1].strip())
+        m = re.search(pattern, result_file.name)
+        if not m:
+            print(f"⚠️ Skipping {result_file.name}: unexpected format")
+            continue
 
-    # Store in dictionaries (rows=metrics, columns=models)
-    data_epoch.setdefault(metric, {})[model] = values.get("epoch", None)
-    data_r2.setdefault(metric, {})[model] = values.get("r2", None)
-    data_mae.setdefault(metric, {})[model] = values.get("mae", None)
-    data_rmse.setdefault(metric, {})[model] = values.get("rmse", None)
+        metric = m.group(1)  # esempio: ssim, ms_ssim, vsi etc.
+
+        # Leggi valori
+        content = result_file.read_text().splitlines()
+
+        r2 = spearman = kendall = None
+        for line in content:
+            if "R2 Score" in line:
+                r2 = float(line.split(":")[1].strip())
+            elif "Spearman" in line:
+                spearman = float(line.split(":")[1].strip())
+            elif "Kendall" in line:
+                kendall = float(line.split(":")[1].strip())
+
+        r2_table[experiment_name][metric] = r2
+        spearman_table[experiment_name][metric] = spearman
+        kendall_table[experiment_name][metric] = kendall
 
 # -------------------------------------------------------------------
-# Convert to DataFrames and export
+# Convert tables to DataFrames and export CSV
 # -------------------------------------------------------------------
-def save_table(data, name):
-    df = pd.DataFrame(data).sort_index().T.sort_index(axis=1)
-    out_path = OUTPUT_DIR / f"{name}.csv"
-    df.to_csv(out_path)
-    print(f"✅ Saved {out_path}")
+def save_table(data_dict, filename):
+    df = pd.DataFrame.from_dict(data_dict, orient="index")
+    df = df.sort_index(axis=0).sort_index(axis=1)  # ordina righe e colonne
+    df.to_csv(OUTPUT_DIR / filename)
+    print(f"✅ Saved {filename}")
 
-save_table(data_epoch, "best_epoch")
-save_table(data_r2, "best_r2")
-save_table(data_mae, "best_mae")
-save_table(data_rmse, "best_rmse")
+save_table(r2_table, "R2_table.csv")
+save_table(spearman_table, "Spearman_table.csv")
+save_table(kendall_table, "Kendall_table.csv")
 
-print("✅ Aggregation completed successfully.")
+print("🎉 Aggregation completed successfully!")

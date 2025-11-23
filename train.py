@@ -103,7 +103,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='tinyvit',
                     choices=['swinv2', 'mobilevitv2', 'resnet50v2', 'vit',
                              'efficientnet', 'mobilenetv3', 'tinyvit'])
-parser.add_argument('--target', choices=ALL_METRICS, required=True,
+parser.add_argument('--metric', choices=ALL_METRICS, required=True,
                     help="Metric to predict (model outputs one scalar).")
 parser.add_argument('--config_path', required=True,
                     help="Path to the configuration file.")
@@ -137,12 +137,12 @@ _defaults = {
 
 # Inject config values into args (config takes precedence over defaults)
 for key, default in _defaults.items():
-    if key in cfg:
-        val = cfg[key]
+    if key.upper() in cfg:
+        val = cfg[key.upper()]
     else:
         val = default
     setattr(args, key, val)
-
+args.lr=float(args.lr)
 # Basic validation
 if args.train_path is None:
     raise ValueError("train_path must be provided in the config file.")
@@ -185,11 +185,11 @@ train_path = Path(args.train_path)
 train_dataset_full = SIMDataset(train_path, transform=transform)
 
 # Filter training data based on selected metric
-scores_full = _get_scores_tensor_from_dataset(train_dataset_full, args.target)
+scores_full = _get_scores_tensor_from_dataset(train_dataset_full, args.metric)
 filtered_train_indices = [i for i, s in enumerate(scores_full)
                           if min_score <= float(s.item()) <= max_score]
 print(f"Filtered training set to {len(filtered_train_indices)} samples "
-      f"with {min_score} <= {args.target.upper()} <= {max_score}")
+      f"with {min_score} <= {args.metric.upper()} <= {max_score}")
 train_subset = Subset(train_dataset_full, filtered_train_indices)
 
 # --- Validation split ---
@@ -197,11 +197,11 @@ if args.val_path:
     val_path = Path(args.val_path)
     val_dataset_full = SIMDataset(val_path, transform=transform)
 
-    val_scores_full = _get_scores_tensor_from_dataset(val_dataset_full, args.target)
+    val_scores_full = _get_scores_tensor_from_dataset(val_dataset_full, args.metric)
     filtered_val_indices = [i for i, s in enumerate(val_scores_full)
                             if min_score <= float(s.item()) <= max_score]
     print(f"Filtered validation set to {len(filtered_val_indices)} samples "
-          f"with {min_score} <= {args.target.upper()} <= {max_score}")
+          f"with {min_score} <= {args.metric.upper()} <= {max_score}")
     val_dataset = Subset(val_dataset_full, filtered_val_indices)
 
     # Balanced validation sampling
@@ -267,7 +267,7 @@ optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
 r2_scores = []
-checkpoint_name = f"{args.model}_{args.target}_{range_suffix}"
+checkpoint_name = f"{args.model}_{args.metric}_{range_suffix}"
 checkpoint_dir = Path(args.experiment_path) / checkpoint_name
 checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
@@ -302,7 +302,7 @@ for epoch in range(start_epoch, args.epochs):
         indices=train_subset.indices if isinstance(train_subset, Subset) else list(range(len(train_subset))),
         epoch_seed=epoch_seed,
         target_per_bin=args.train_target_per_bin,
-        target=args.target
+        target=args.metric
     )
     subset_dataset = Subset(train_subset_base, subset_indices)
 
@@ -310,14 +310,14 @@ for epoch in range(start_epoch, args.epochs):
                               shuffle=True, num_workers=4, generator=g)
 
     model.train()
-    pbar = tqdm(train_loader, desc=f"[Epoch {epoch+1}/{args.epochs}] Training ({args.target})", unit="batch")
+    pbar = tqdm(train_loader, desc=f"[Epoch {epoch+1}/{args.epochs}] Training ({args.metric})", unit="batch")
     running_loss = 0.0
     
     for images, metrics_dict in pbar:
         images = images.to(device)
 
         # Select only the chosen metric
-        scores = metrics_dict[args.target].unsqueeze(1).to(device)
+        scores = metrics_dict[args.metric].unsqueeze(1).to(device)
         scores = (scores - min_score) / (max_score - min_score)
 
         preds = model(images)
@@ -343,9 +343,9 @@ for epoch in range(start_epoch, args.epochs):
     y_true, y_pred, original_scores = [], [], []
 
     with torch.no_grad():
-        for images, metrics_dict in tqdm(val_loader, desc=f"[Validation] ({args.target})", unit="batch"):
+        for images, metrics_dict in tqdm(val_loader, desc=f"[Validation] ({args.metric})", unit="batch"):
             images = images.to(device)
-            raw_scores = metrics_dict[args.target].unsqueeze(1)
+            raw_scores = metrics_dict[args.metric].unsqueeze(1)
             normalized_scores = (raw_scores - min_score) / (max_score - min_score)
 
             preds = model(images).cpu().numpy().flatten()
@@ -358,7 +358,7 @@ for epoch in range(start_epoch, args.epochs):
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    print(f"Validation ({args.target}): R2={r2:.4f}  MAE={mae:.4f}  RMSE={rmse:.4f}")
+    print(f"Validation ({args.metric}): R2={r2:.4f}  MAE={mae:.4f}  RMSE={rmse:.4f}")
     r2_scores.append(r2)
 
     # ----------------------------------------------------------------------- #
@@ -376,9 +376,9 @@ for epoch in range(start_epoch, args.epochs):
         plt.figure()
         plt.hexbin(y_true, y_pred, gridsize=60, cmap='viridis', mincnt=1)
         plt.colorbar(label='Count')
-        plt.xlabel(f"True {args.target.upper()}")
-        plt.ylabel(f"Predicted {args.target.upper()}")
-        plt.title(f"{args.target.upper()} vs Predicted")
+        plt.xlabel(f"True {args.metric.upper()}")
+        plt.ylabel(f"Predicted {args.metric.upper()}")
+        plt.title(f"{args.metric.upper()} vs Predicted")
         plt.xlim(0, 1)
         plt.ylim(0, 1)
         plt.savefig(checkpoint_dir / "hexbin.pdf", dpi=300, bbox_inches='tight')
@@ -389,9 +389,9 @@ for epoch in range(start_epoch, args.epochs):
         idxs = np.random.choice(len(y_true), min(len(y_true), max_points), replace=False)
         plt.figure()
         plt.scatter(y_true[idxs], y_pred[idxs], alpha=0.5)
-        plt.xlabel(f"True {args.target.upper()}")
-        plt.ylabel(f"Predicted {args.target.upper()}")
-        plt.title(f"{args.target.upper()} vs Predicted")
+        plt.xlabel(f"True {args.metric.upper()}")
+        plt.ylabel(f"Predicted {args.metric.upper()}")
+        plt.title(f"{args.metric.upper()} vs Predicted")
         plt.grid(True)
         plt.xlim(0, 1)
         plt.ylim(0, 1)
@@ -401,10 +401,10 @@ for epoch in range(start_epoch, args.epochs):
         # Save predictions to CSV
         denorm_y_pred = y_pred * (max_score - min_score) + min_score
         csv_data = {
-            f"true_{args.target}": y_true,
-            f"pred_{args.target}": y_pred,
-            f"denorm_true_{args.target}": original_scores,
-            f"denorm_pred_{args.target}": denorm_y_pred
+            f"true_{args.metric}": y_true,
+            f"pred_{args.metric}": y_pred,
+            f"denorm_true_{args.metric}": original_scores,
+            f"denorm_pred_{args.metric}": denorm_y_pred
         }
         pd.DataFrame(csv_data).to_csv(checkpoint_dir / "predictions.csv", index=False)
     else:
@@ -429,9 +429,9 @@ for epoch in range(start_epoch, args.epochs):
     plt.plot(range(len(r2_scores)), r2_scores, marker='o')
     plt.xlabel("Epoch")
     plt.ylabel("R2 Score")
-    plt.title(f"R2 Over Epochs ({args.target})")
+    plt.title(f"R2 Over Epochs ({args.metric})")
     plt.grid(True)
-    plt.savefig(checkpoint_dir / f"r2_over_epochs_{args.target}.pdf", dpi=300, bbox_inches='tight')
+    plt.savefig(checkpoint_dir / f"r2_over_epochs_{args.metric}.pdf", dpi=300, bbox_inches='tight')
     plt.close()
 
 # --------------------------------------------------------------------------- #

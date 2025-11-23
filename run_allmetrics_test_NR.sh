@@ -12,7 +12,7 @@ set -euo pipefail
 # -------------------------------
 MODEL="tinyvit"                             # Model to test
 TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/testNR.py"   # Path to your test script
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_KonIQ10k_TID13their.yaml"  # Config file path
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_KonIQ10k_Combined_IQA.yaml"  # Config file path
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
 
@@ -36,7 +36,6 @@ for METRIC in "${METRICS[@]}"; do
   # Build command
   CMD="python3 ${TEST_SCRIPT} \
       --model ${MODEL} \
-      --checkpoint ${CHECKPOINT_PATH} \
       --metric ${METRIC} \
       --config_path ${CONFIG_PATH}"
 
@@ -45,7 +44,7 @@ for METRIC in "${METRICS[@]}"; do
   echo "------------------------------------------------------------"
 
   # Run and log output
-  "${CMD[@]}"
+  ${CMD[@]}
 
   echo "Finished evaluation for ${METRIC}."
   echo

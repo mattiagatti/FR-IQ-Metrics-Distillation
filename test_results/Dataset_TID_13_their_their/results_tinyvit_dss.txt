@@ -1,0 +1,8 @@
+Model       : tinyvit
+Target      : dss
+R2 Score    : -1.2337
+MAE         : 0.2770
+MSE         : 0.0999
+RMSE        : 0.3161
+Spearman ρ  : 0.1701
+Kendall τ   : 0.1145

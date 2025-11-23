@@ -1,0 +1,12 @@
+DatasetName_1_2
+
+1 Degradation type of the images used during training
+2 Degradation type of the DatasetName's images used for test
+
+
+legend:
+our: Degradatioon random in the number of techniques
+their: Only one degradation over 24 available in 5 differenet level 
+
+exeptions
+Dataset_TID_13_theirTID_their this experiment is conducted with a model trained on TID_13 with the original degradation structure (their)

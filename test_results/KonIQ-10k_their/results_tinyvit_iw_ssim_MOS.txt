@@ -1,0 +1,8 @@
+Model       : tinyvit
+Target      : iw_ssim
+R2 Score    : -3.7569
+MAE         : 0.2699
+MSE         : 0.0906
+RMSE        : 0.3011
+Spearman ρ  : 0.2904
+Kendall τ   : 0.1952

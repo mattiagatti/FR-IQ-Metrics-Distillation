@@ -1,0 +1,8 @@
+Model       : tinyvit
+Target      : haarpsi
+R2 Score    : -4.1787
+MAE         : 0.3032
+MSE         : 0.0983
+RMSE        : 0.3135
+Spearman ρ  : 0.8600
+Kendall τ   : 0.6738

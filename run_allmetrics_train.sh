@@ -8,8 +8,8 @@ set -euo pipefail
 # ================================================================
 
 # -------------------- CONFIGURATION -------------------- #
-MODEL="swinv2"
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/train_IMAGENET_our.yaml"
+MODEL="tinyvit"
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/train_Combined_IQA.yaml"
 
 # Metrics to train on
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
@@ -42,7 +42,7 @@ for M in "${METRICS[@]}"; do
     --metric "${M}" \
     --config_path "${CONFIG_PATH}"
 
-  echo "=== Finished training for: ${M} (log: ${LOG_FILE}) ==="
+  echo "=== Finished training for: ${M} ==="
   echo
 done
 

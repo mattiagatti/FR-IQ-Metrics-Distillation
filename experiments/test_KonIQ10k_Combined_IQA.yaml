@@ -1,0 +1,8 @@
+
+CHECKPOINT_BASE: "/home/jovyan/nfs/lsgroi/exp/exp_Combined_IQA"   # Base dir with checkpoints
+TEST_PATH: "/home/jovyan/nfs/lsgroi/Dataset/KonIQ-10k"       # Dataset path
+IMAGE_SIZE: 384
+BATCH_SIZE: 32
+MIN_SCORE: 0.0
+MAX_SAMPLES_PER_BIN: 50
+OUTPUT_DIR: "./test_results/KonIQ-10k_Combined_IQA"

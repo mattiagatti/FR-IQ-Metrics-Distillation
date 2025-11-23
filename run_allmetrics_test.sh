@@ -15,7 +15,7 @@ MODEL="tinyvit"                             # Model to test
 TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/test.py"   # Path to your test script
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_TID13our_IMAGENETour.yaml"  # Config file path
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_Combined_IQA_Combined_IQA.yaml"  # Config file path
 ALSO_MOS=true                             # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #
@@ -45,7 +45,7 @@ for METRIC in "${METRICS[@]}"; do
   echo "------------------------------------------------------------"
 
   # Run and print output to stdout
-  "${CMD[@]}"
+  ${CMD[@]}
 
   echo "Finished evaluation for ${METRIC}."
 
@@ -63,7 +63,7 @@ for METRIC in "${METRICS[@]}"; do
     echo "------------------------------------------------------------"
 
     # Run and print output to stdout
-    "${CMD[@]}"
+    ${CMD[@]}
 
     echo "Finished evaluation for ${METRIC} with MOS."
   fi

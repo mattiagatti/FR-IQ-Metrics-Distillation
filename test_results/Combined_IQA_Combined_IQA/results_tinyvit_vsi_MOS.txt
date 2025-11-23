@@ -1,0 +1,8 @@
+Model       : tinyvit
+Target      : vsi
+R2 Score    : -5.3463
+MAE         : 0.4394
+MSE         : 0.2229
+RMSE        : 0.4722
+Spearman ρ  : 0.7330
+Kendall τ   : 0.5326
