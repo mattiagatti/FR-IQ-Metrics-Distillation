@@ -7,13 +7,14 @@ from pathlib import Path
 # Configuration
 # -------------------------------------------------------------------
 RESULTS_DIRS_TO_COMBINE = [
-    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_Combined_IQA"),
-    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_our"),
-    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_their"),
-    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_TIDtheir"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_Combined_IQA"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_our"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_their"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_TIDtheir"),
+    Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_Combined_IQA_MOS")
 ]
 
-OUTPUT_DIR = Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/KonIQ-10k_summary")
+OUTPUT_DIR = Path("/home/jovyan/python/Neural-No-Reference-SIM/test_results/Live_summary")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # pattern per estrarre la metrica

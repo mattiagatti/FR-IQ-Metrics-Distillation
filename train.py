@@ -97,7 +97,7 @@ def get_balanced_subset_indices(dataset,
 # 2.  CLI
 # --------------------------------------------------------------------------- #
 ALL_METRICS = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim',
-               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi','mos']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='tinyvit',
@@ -181,51 +181,56 @@ range_suffix = f"{int(min_score * 100):03d}{int(max_score * 100):03d}"
 # 4.  Dataset Loading and Filtering
 # --------------------------------------------------------------------------- #
 train_path = Path(args.train_path)
-
-train_dataset_full = SIMDataset(train_path, transform=transform)
-
-# Filter training data based on selected metric
-scores_full = _get_scores_tensor_from_dataset(train_dataset_full, args.metric)
-filtered_train_indices = [i for i, s in enumerate(scores_full)
-                          if min_score <= float(s.item()) <= max_score]
-print(f"Filtered training set to {len(filtered_train_indices)} samples "
-      f"with {min_score} <= {args.metric.upper()} <= {max_score}")
-train_subset = Subset(train_dataset_full, filtered_train_indices)
+if args.metric == 'mos':
+    train_subset = SIMDataset(train_path, transform=transform, MOS=True)
+else:
+    train_dataset_full = SIMDataset(train_path, transform=transform)
+    # Filter training data based on selected metric
+    scores_full = _get_scores_tensor_from_dataset(train_dataset_full, args.metric)
+    filtered_train_indices = [i for i, s in enumerate(scores_full)
+                            if min_score <= float(s.item()) <= max_score]
+    print(f"Filtered training set to {len(filtered_train_indices)} samples "
+        f"with {min_score} <= {args.metric.upper()} <= {max_score}")
+    train_subset = Subset(train_dataset_full, filtered_train_indices)
 
 # --- Validation split ---
 if args.val_path:
     val_path = Path(args.val_path)
-    val_dataset_full = SIMDataset(val_path, transform=transform)
+    if args.metric == 'mos':
+        val_subset = SIMDataset(val_path, transform=transform, MOS=True)
 
-    val_scores_full = _get_scores_tensor_from_dataset(val_dataset_full, args.metric)
-    filtered_val_indices = [i for i, s in enumerate(val_scores_full)
-                            if min_score <= float(s.item()) <= max_score]
-    print(f"Filtered validation set to {len(filtered_val_indices)} samples "
-          f"with {min_score} <= {args.metric.upper()} <= {max_score}")
-    val_dataset = Subset(val_dataset_full, filtered_val_indices)
+    else:
+        val_dataset_full = SIMDataset(val_path, transform=transform)
 
-    # Balanced validation sampling
-    num_bins = 100
-    bin_size = 1.0 / num_bins
-    bin_to_indices = defaultdict(list)
+        val_scores_full = _get_scores_tensor_from_dataset(val_dataset_full, args.metric)
+        filtered_val_indices = [i for i, s in enumerate(val_scores_full)
+                                if min_score <= float(s.item()) <= max_score]
+        print(f"Filtered validation set to {len(filtered_val_indices)} samples "
+            f"with {min_score} <= {args.metric.upper()} <= {max_score}")
+        val_dataset = Subset(val_dataset_full, filtered_val_indices)
 
-    for local_idx, global_idx in enumerate(val_dataset.indices):
-        score = float(val_scores_full[global_idx].item())
-        bin_idx = min(int(score / bin_size), num_bins - 1)
-        bin_to_indices[bin_idx].append(local_idx)
+        # Balanced validation sampling
+        num_bins = 100
+        bin_size = 1.0 / num_bins
+        bin_to_indices = defaultdict(list)
 
-    val_indices = []
-    for bin_idx, bin_idxs in bin_to_indices.items():
-        if not bin_idxs:
-            continue
-        sampled = sorted(
-            bin_idxs,
-            key=lambda i: val_dataset_full.image_paths[val_dataset.indices[i]].name
-        )[:args.val_target_per_bin]
-        val_indices.extend(sampled)
+        for local_idx, global_idx in enumerate(val_dataset.indices):
+            score = float(val_scores_full[global_idx].item())
+            bin_idx = min(int(score / bin_size), num_bins - 1)
+            bin_to_indices[bin_idx].append(local_idx)
 
-    print(f"[Validation] Using {len(val_indices)} balanced samples.")
-    val_subset = Subset(val_dataset, val_indices)
+        val_indices = []
+        for bin_idx, bin_idxs in bin_to_indices.items():
+            if not bin_idxs:
+                continue
+            sampled = sorted(
+                bin_idxs,
+                key=lambda i: val_dataset_full.image_paths[val_dataset.indices[i]].name
+            )[:args.val_target_per_bin]
+            val_indices.extend(sampled)
+
+        print(f"[Validation] Using {len(val_indices)} balanced samples.")
+        val_subset = Subset(val_dataset, val_indices)
 
 else:
     # Automatic validation split from training set

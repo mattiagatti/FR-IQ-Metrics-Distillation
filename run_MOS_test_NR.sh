@@ -12,9 +12,9 @@ set -euo pipefail
 # -------------------------------
 MODEL="tinyvit"                             # Model to test
 TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/testNR.py"   # Path to your test script
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_Live_Combined_IQA.yaml"  # Config file path
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_Live_Combined_IQA_MOS.yaml"  # Config file path
 # List of all supported metrics
-METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
+METRICS=(mos)
 
 
 # -------------------- GPU SELECTION -------------------- #

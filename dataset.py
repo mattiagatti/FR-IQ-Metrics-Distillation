@@ -123,7 +123,6 @@ class LiveItWDataset(Dataset):
         # Extract MOS values
         # They are usually stored as Nx1 arrays in MATLAB
         self.mos_list = mos_mat["AllMOS_release"].squeeze().astype(np.float32)
-        print("MOS values loaded:", self.mos_list)
         # Extract image names (cell array → python list)
         raw_names = names_mat["AllImages_release"].squeeze()
         self.image_names = [str(name[0]) for name in raw_names]
@@ -136,9 +135,6 @@ class LiveItWDataset(Dataset):
 
         for name, mos in zip(self.image_names, self.mos_list):
             if not name.lower().startswith("t"):
-                if mos < 10:
-                    print(f"look at image {name} with MOS {mos}")
-                    
                 filtered_names.append(name)
                 filtered_mos.append(mos)
 
@@ -166,13 +162,13 @@ class LiveItWDataset(Dataset):
         # ----- Load MOS -----
         mos = torch.tensor(self.mos_list[idx], dtype=torch.float32)
 
+        mos=mos/100.0  # Normalize to 0-1
         metrics_dict = {"mos": mos}
 
         return img_tensor, metrics_dict
 
 if __name__ == "__main__":
 
-   
     dataset = LiveItWDataset(root_dir="./dataset/Live_NR" )
     print(f"Loaded LiveItWDataset with {len(dataset)} items")
 

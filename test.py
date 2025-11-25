@@ -32,7 +32,7 @@ set_seed()
 # 2. CLI arguments and yaml config
 # --------------------------------------------------------------------------- #
 ALL_METRICS = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim',
-               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi', 'mos']
 
 parser = argparse.ArgumentParser(description="Evaluate regression model on IQA metrics")
 parser.add_argument('--model', type=str, default='tinyvit',
@@ -108,8 +108,10 @@ transform = transforms.Compose([
     transforms.Resize((args.image_size, args.image_size)),
     transforms.ToTensor()
 ])
-
-test_dataset_full = SIMDataset(test_path, transform=transform, MOS=args.mos)
+if args.metric=='mos':
+    test_dataset_full = SIMDataset(test_path, transform=transform, MOS=True)
+else:
+    test_dataset_full = SIMDataset(test_path, transform=transform, MOS=args.mos)
 
 # Dynamically get the selected metric tensor
 attr = f"{args.metric}_scores"

@@ -11,7 +11,7 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from scipy.stats import spearmanr, kendalltau
 
 from model import RegressionModel
-from dataset import SIMDataset,KonIQDataset
+from dataset import SIMDataset,KonIQDataset, LiveItWDataset
 
 
 # --------------------------------------------------------------------------- #
@@ -31,7 +31,7 @@ set_seed()
 # 2. CLI arguments and yaml config
 # --------------------------------------------------------------------------- #
 ALL_METRICS = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim',
-               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+               'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi', 'mos']
 
 parser = argparse.ArgumentParser(description="Evaluate regression model on IQA metrics")
 parser.add_argument('--model', type=str, default='tinyvit',
@@ -100,8 +100,10 @@ transform = transforms.Compose([
     transforms.Resize((args.image_size, args.image_size)),
     transforms.ToTensor()
 ])
-
-test_dataset_full = KonIQDataset(test_path, transform=transform)
+if dataset_name == "Live_NR":
+    test_dataset_full = LiveItWDataset(test_path, transform=transform)
+elif dataset_name == "KonIQ-10k": 
+    test_dataset_full = KonIQDataset(test_path, transform=transform)
 
 # Dynamically get the selected metric tensor
 
@@ -132,7 +134,6 @@ with torch.no_grad():
 
 y_true = np.array(y_true)
 y_pred = np.array(y_pred)
-
 
 # --------------------------------------------------------------------------- #
 # 6. Sampling for plotting
