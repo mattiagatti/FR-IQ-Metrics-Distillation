@@ -6,8 +6,8 @@
 
 
 
-TRAIN_PATH: "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/train"
-VAL_PATH: "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/val"
+TRAIN_PATH: "/home/super/gaia/datasets/ILSVRC2012_degraded/train"
+VAL_PATH: "/home/super/gaia/datasets/ILSVRC2012_degraded/val"
 
 EPOCHS: 100
 BATCH_SIZE: 32
