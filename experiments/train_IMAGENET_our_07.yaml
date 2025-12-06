@@ -18,6 +18,6 @@ VAL_TARGET_PER_BIN: 100
 MIN_SCORE: 0.0
 MAX_SCORE: 1.0
 PATIENCE: 10
-EXPERIMENT_PATH: "/home/jovyan/nfs/lsgroi/exp/exp_IMAGENET_07"
+EXPERIMENT_PATH: "/home/super/gaia/lsgroi/exp/exp_IMAGENET_07"
 MIN_SCORE: 0.7
 MAX_SCORE: 1.0
