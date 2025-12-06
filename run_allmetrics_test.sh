@@ -12,10 +12,10 @@ set -euo pipefail
 # User configuration
 # -------------------------------
 MODEL="tinyvit"                             # Model to test
-TEST_SCRIPT="/home/jovyan/python/Neural-No-Reference-SIM/test.py"   # Path to your test script
+TEST_SCRIPT="./test.py"   # Path to your test script
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/test_Combined_IQA_Combined_IQA.yaml"  # Config file path
+CONFIG_PATH="./experiments/test_IMAGENETour_IMAGENETour.yaml"  # Config file path
 ALSO_MOS=true                             # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #

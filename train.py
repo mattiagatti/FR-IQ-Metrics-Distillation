@@ -22,6 +22,7 @@ from tqdm import tqdm
 from torchvision import transforms
 import json
 import yaml
+from scipy.stats import spearmanr
 
 
 # --------------------------------------------------------------------------- #
@@ -363,7 +364,8 @@ for epoch in range(start_epoch, args.epochs):
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    print(f"Validation ({args.metric}): R2={r2:.4f}  MAE={mae:.4f}  RMSE={rmse:.4f}")
+    spearman_corr, _ = spearmanr(y_true, y_pred)
+    print(f"Validation ({args.metric}): R2={r2:.4f}  MAE={mae:.4f}  RMSE={rmse:.4f} SROCC={spearman_corr:.4f}")
     r2_scores.append(r2)
 
     # ----------------------------------------------------------------------- #
@@ -448,3 +450,4 @@ with open(results_txt, "w") as f:
     f.write(f"Best R2 Score : {best_r2:.4f}\n")
     f.write(f"Best MAE      : {mae:.4f}\n")
     f.write(f"Best RMSE     : {rmse:.4f}\n")
+    f.write(f"Best SROCC    : {spearman_corr:.4f}\n")

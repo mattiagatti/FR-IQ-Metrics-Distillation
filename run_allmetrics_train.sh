@@ -9,13 +9,13 @@ set -euo pipefail
 
 # -------------------- CONFIGURATION -------------------- #
 MODEL="tinyvit"
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/train_Combined_IQA.yaml"
+CONFIG_PATH="./experiments/train_IMAGENET_our.yaml"
 
 # Metrics to train on
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
 
 # Path to Python training script
-TRAIN_PY="/home/jovyan/python/Neural-No-Reference-SIM/train.py"
+TRAIN_PY="./train.py"
 PYTHON_BIN="python3"
 
 # -------------------- GPU SELECTION -------------------- #
