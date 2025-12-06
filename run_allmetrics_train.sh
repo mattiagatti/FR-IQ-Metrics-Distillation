@@ -9,7 +9,7 @@ set -euo pipefail
 
 # -------------------- CONFIGURATION -------------------- #
 MODEL="tinyvit"
-CONFIG_PATH="./experiments/train_IMAGENET_our_04.yaml"
+CONFIG_PATH="./experiments/train_IMAGENET_our_07.yaml"
 
 # Metrics to train on
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)

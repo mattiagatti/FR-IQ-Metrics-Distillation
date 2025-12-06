@@ -16,7 +16,7 @@ TEST_SCRIPT="./test.py"   # Path to your test script
 # List of all supported metrics
 METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
 CONFIG_PATH="./experiments/test_IMAGENETour_IMAGENETour.yaml"  # Config file path
-ALSO_MOS=true                             # Whether to also test with MOS
+ALSO_MOS=false                           # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #
 
