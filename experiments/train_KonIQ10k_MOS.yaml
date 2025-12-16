@@ -1,0 +1,20 @@
+# Configuration for training on degraded ImageNet dataset
+
+
+# Degradation: gaussian_noise, additive_color_noise, spatially_correlated_noise, masked_noise, high_freq_noise, impulse_noise, quantization_noise, gaussian_blur, brightness_shift, contrast_change, saturation_change, pixelation, color_quantization
+# 200 reference images from ImageNet (13 degradations type x 5 levels = 13 000 images) used for training, validation and test.
+
+
+TRAIN_PATH: "/home/jovyan/nfs/lsgroi/Dataset/KonIQ-10k_split/train"
+VAL_PATH: "/home/jovyan/nfs/lsgroi/Dataset/KonIQ-10k_split/val"
+
+EPOCHS: 100
+BATCH_SIZE: 32
+IMAGE_SIZE: 384
+LR: 1e-4
+TRAIN_TARGET_PER_BIN: 100
+VAL_TARGET_PER_BIN: 100
+MIN_SCORE: 0.0
+MAX_SCORE: 1.0
+PATIENCE: 15
+EXPERIMENT_PATH: "/home/jovyan/nfs/lsgroi/exp/exp_KonIQ-10k"

@@ -1,0 +1,8 @@
+Model       : vit
+Target      : mdsi
+R2 Score    : 0.1147
+MAE         : 0.0456
+MSE         : 0.0064
+RMSE        : 0.0797
+Spearman ρ  : 0.6989
+Kendall τ   : 0.5291

@@ -1,0 +1,8 @@
+Model       : vit
+Target      : dss
+R2 Score    : -0.7166
+MAE         : 0.2151
+MSE         : 0.0606
+RMSE        : 0.2461
+Spearman ρ  : 0.6471
+Kendall τ   : 0.4619

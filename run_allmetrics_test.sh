@@ -16,11 +16,12 @@ TEST_SCRIPT="./test.py"   # Path to your test script
 
 # Models to test
 MODELS=(mobilevitv2 resnet50v2 vit efficientnet mobilenetv3 tinyvit)
+#MODELS=(mobilevitv2 resnet50v2 vit efficientnet mobilenetv3)
 
 # List of all supported metrics
-METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
+METRICS=(ssim fsim sr_sim vsi dss)
 
-CONFIG_PATH="./experiments/test_IMAGENETour_IMAGENETour.yaml"  # Config file path
+CONFIG_PATH="./experiments/test_IMAGENETour_07_IMAGENETour_07.yaml"  # Config file path
 ALSO_MOS=false                           # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #

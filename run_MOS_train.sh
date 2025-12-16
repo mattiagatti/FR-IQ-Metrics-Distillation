@@ -9,7 +9,7 @@ set -euo pipefail
 
 # -------------------- CONFIGURATION -------------------- #
 MODEL="tinyvit"
-CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/train_Combined_IQA_MOS.yaml"
+CONFIG_PATH="/home/jovyan/python/Neural-No-Reference-SIM/experiments/train_KonIQ10k_MOS.yaml"
 
 # Metrics to train on
 METRICS=(mos)

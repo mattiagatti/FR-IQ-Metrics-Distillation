@@ -1,0 +1,8 @@
+Model       : resnet50v2
+Target      : haarpsi
+R2 Score    : 0.7510
+MAE         : 0.0652
+MSE         : 0.0079
+RMSE        : 0.0889
+Spearman ρ  : 0.8351
+Kendall τ   : 0.6512

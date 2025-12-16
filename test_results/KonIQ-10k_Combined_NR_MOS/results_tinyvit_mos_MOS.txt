@@ -1,0 +1,8 @@
+Model       : tinyvit
+Target      : mos
+R2 Score    : 0.5379
+MAE         : 0.0734
+MSE         : 0.0090
+RMSE        : 0.0948
+Spearman ρ  : 0.6999
+Kendall τ   : 0.5077

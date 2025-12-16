@@ -1,0 +1,8 @@
+Model       : resnet50v2
+Target      : vsi
+R2 Score    : -28.1610
+MAE         : 0.3229
+MSE         : 0.1272
+RMSE        : 0.3567
+Spearman ρ  : 0.8494
+Kendall τ   : 0.6658

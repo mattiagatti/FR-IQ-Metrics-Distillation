@@ -11,7 +11,7 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from scipy.stats import spearmanr, kendalltau
 
 from model import RegressionModel
-from dataset import SIMDataset,KonIQDataset, LiveItWDataset
+from dataset import SIMDataset,KonIQDataset, LiveItWDataset, NRDataset
 
 
 # --------------------------------------------------------------------------- #
@@ -104,7 +104,8 @@ if dataset_name == "Live_NR":
     test_dataset_full = LiveItWDataset(test_path, transform=transform)
 elif dataset_name == "KonIQ-10k": 
     test_dataset_full = KonIQDataset(test_path, transform=transform)
-
+elif dataset_name == "test":
+     test_dataset_full = NRDataset(test_path, transform=transform)
 # Dynamically get the selected metric tensor
 
 # Filter dataset by minimum score

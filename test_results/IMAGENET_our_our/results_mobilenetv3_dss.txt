@@ -1,0 +1,8 @@
+Model       : mobilenetv3
+Target      : dss
+R2 Score    : 0.7270
+MAE         : 0.0946
+MSE         : 0.0163
+RMSE        : 0.1277
+Spearman ρ  : 0.8041
+Kendall τ   : 0.6149

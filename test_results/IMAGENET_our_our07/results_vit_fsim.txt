@@ -1,0 +1,8 @@
+Model       : vit
+Target      : fsim
+R2 Score    : -6.9535
+MAE         : 0.3820
+MSE         : 0.1608
+RMSE        : 0.4011
+Spearman ρ  : 0.6646
+Kendall τ   : 0.4831

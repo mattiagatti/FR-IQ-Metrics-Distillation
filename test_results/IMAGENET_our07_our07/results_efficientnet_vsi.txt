@@ -1,0 +1,8 @@
+Model       : efficientnet
+Target      : vsi
+R2 Score    : -32.4708
+MAE         : 0.3318
+MSE         : 0.1341
+RMSE        : 0.3662
+Spearman ρ  : 0.8108
+Kendall τ   : 0.6180

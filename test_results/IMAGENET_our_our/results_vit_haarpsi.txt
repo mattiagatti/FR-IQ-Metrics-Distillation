@@ -1,0 +1,8 @@
+Model       : vit
+Target      : haarpsi
+R2 Score    : 0.5358
+MAE         : 0.0905
+MSE         : 0.0147
+RMSE        : 0.1214
+Spearman ρ  : 0.7414
+Kendall τ   : 0.5506

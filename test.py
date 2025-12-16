@@ -59,17 +59,18 @@ if args.config_path:
     # normalize keys to lowercase and map to args if present
     for k, v in cfg.items():
         key = k.lower()
-        if key == 'checkpoint_base':
-            base = Path(v)
-            if not base.exists():
-                raise FileNotFoundError(f"Checkpoint base not found: {base}")
-            subdir = f"{args.model}_{args.metric}_000100"
-            checkpoint_path = base / subdir / "best.pth"
-            if not checkpoint_path.exists():
-                raise FileNotFoundError(f"Expected checkpoint not found: {checkpoint_path}")
-            setattr(args, 'checkpoint', str(checkpoint_path))
-        else:
-            setattr(args, key, v)
+        setattr(args, key, v)
+            
+    base = Path(args.checkpoint_base)
+    if not base.exists():
+        raise FileNotFoundError(f"Checkpoint base not found: {base}")
+    min_score_model = 0.4 if "04" in args.checkpoint_base.split("_")[-1] else 0.7 if "07" in args.checkpoint_base.split("_")[-1] else 0
+    range_suffix = f"{int(min_score_model * 100):03d}{100}"
+    subdir = f"{args.model}_{args.metric}_{range_suffix}"
+    checkpoint_path = base / subdir / "best.pth"
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Expected checkpoint not found: {checkpoint_path}")
+    setattr(args, 'checkpoint', str(checkpoint_path))
 
 
 
@@ -128,11 +129,11 @@ if not hasattr(test_dataset_full, attr):
 all_scores = getattr(test_dataset_full, attr)
 
 # Filter dataset by minimum score
-# selected_indices = [i for i, s in enumerate(all_scores) if s >= args.min_score]
-# print(f"Filtered test set to {len(selected_indices)} samples with {args.metric.upper()} >= {args.min_score}")
+selected_indices = [i for i, s in enumerate(all_scores) if s >= args.min_score]
+print(f"Filtered test set to {len(selected_indices)} samples with {args.metric.upper()} >= {args.min_score}")
 
-# test_dataset = Subset(test_dataset_full, selected_indices)
-test_loader = DataLoader(test_dataset_full, batch_size=args.batch_size, shuffle=False, num_workers=4)
+test_dataset = Subset(test_dataset_full, selected_indices)
+test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
 
 # --------------------------------------------------------------------------- #

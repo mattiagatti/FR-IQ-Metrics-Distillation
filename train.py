@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from collections import defaultdict
-from dataset import SIMDataset
+from dataset import SIMDataset, NRDataset
 from model import RegressionModel
 from pathlib import Path
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
@@ -149,6 +149,7 @@ if args.train_path is None:
     raise ValueError("train_path must be provided in the config file.")
 
 print(f"Loaded config from {conf_path}")
+print (cfg)
 
 
 
@@ -183,7 +184,8 @@ range_suffix = f"{int(min_score * 100):03d}{int(max_score * 100):03d}"
 # --------------------------------------------------------------------------- #
 train_path = Path(args.train_path)
 if args.metric == 'mos':
-    train_subset = SIMDataset(train_path, transform=transform, MOS=True)
+    #train_subset = SIMDataset(train_path, transform=transform, MOS=True)
+    train_subset = NRDataset(train_path, transform=transform)
 else:
     train_dataset_full = SIMDataset(train_path, transform=transform)
     # Filter training data based on selected metric
@@ -198,7 +200,8 @@ else:
 if args.val_path:
     val_path = Path(args.val_path)
     if args.metric == 'mos':
-        val_subset = SIMDataset(val_path, transform=transform, MOS=True)
+        #val_subset = SIMDataset(val_path, transform=transform, MOS=True)
+        val_subset = NRDataset(val_path, transform=transform)
 
     else:
         val_dataset_full = SIMDataset(val_path, transform=transform)

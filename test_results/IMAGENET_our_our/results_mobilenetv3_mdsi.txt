@@ -1,0 +1,8 @@
+Model       : mobilenetv3
+Target      : mdsi
+R2 Score    : 0.1088
+MAE         : 0.0466
+MSE         : 0.0064
+RMSE        : 0.0800
+Spearman ρ  : 0.7329
+Kendall τ   : 0.5590

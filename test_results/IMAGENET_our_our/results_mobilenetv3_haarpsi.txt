@@ -1,0 +1,8 @@
+Model       : mobilenetv3
+Target      : haarpsi
+R2 Score    : 0.6148
+MAE         : 0.0796
+MSE         : 0.0122
+RMSE        : 0.1106
+Spearman ρ  : 0.7730
+Kendall τ   : 0.5848

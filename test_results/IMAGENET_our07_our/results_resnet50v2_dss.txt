@@ -1,0 +1,8 @@
+Model       : resnet50v2
+Target      : dss
+R2 Score    : -1.0230
+MAE         : 0.1054
+MSE         : 0.0171
+RMSE        : 0.1309
+Spearman ρ  : 0.5800
+Kendall τ   : 0.4057

@@ -1,0 +1,8 @@
+Model       : mobilenetv3
+Target      : vsi
+R2 Score    : 0.2702
+MAE         : 0.0414
+MSE         : 0.0029
+RMSE        : 0.0541
+Spearman ρ  : 0.7738
+Kendall τ   : 0.5793

@@ -15,7 +15,7 @@ CONFIG_PATH="./experiments/train_IMAGENET_our_04.yaml"
 MODELS=(mobilevitv2 resnet50v2 vit efficientnet mobilenetv3 tinyvit)
 
 # Metrics to train on
-METRICS=(ssim fsim ms_ssim iw_ssim sr_sim vsi dss haarpsi mdsi)
+METRICS=(ssim fsim sr_sim vsi dss)
 
 # Path to Python training script
 TRAIN_PY="./train.py"

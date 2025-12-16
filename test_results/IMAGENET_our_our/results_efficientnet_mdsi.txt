@@ -1,0 +1,8 @@
+Model       : efficientnet
+Target      : mdsi
+R2 Score    : 0.2135
+MAE         : 0.0421
+MSE         : 0.0056
+RMSE        : 0.0752
+Spearman ρ  : 0.7423
+Kendall τ   : 0.5698
