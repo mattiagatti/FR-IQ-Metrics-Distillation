@@ -151,6 +151,13 @@ with torch.no_grad():
             targets = metrics_dict[args.metric].unsqueeze(1).to(device)
 
         preds = model(images).cpu().numpy().flatten()
+
+        if args.dernormalize:
+            # Denormalize predictions if model was trained on normalized targets in [0,1]
+            min_s = getattr(args, "min_score", 0.0)
+            max_s = getattr(args, "max_score", 1.0)
+            preds = preds * (max_s - min_s) + min_s
+
         targets_np = targets.cpu().numpy().flatten()
 
         y_pred.extend(preds)
