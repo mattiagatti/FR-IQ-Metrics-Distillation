@@ -1,8 +1,8 @@
 Model       : mobilenetv3
 Target      : sr_sim
-R2 Score    : -16.5848
-MAE         : 0.4121
-MSE         : 0.1971
-RMSE        : 0.4439
+R2 Score    : 0.6432
+MAE         : 0.0461
+MSE         : 0.0040
+RMSE        : 0.0632
 Spearman ρ  : 0.8442
 Kendall τ   : 0.6558

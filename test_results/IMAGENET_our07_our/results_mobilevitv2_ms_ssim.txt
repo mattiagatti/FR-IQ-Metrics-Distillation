@@ -1,0 +1,8 @@
+Model       : mobilevitv2
+Target      : ms_ssim
+R2 Score    : 0.2946
+MAE         : 0.0563
+MSE         : 0.0054
+RMSE        : 0.0738
+Spearman ρ  : 0.7769
+Kendall τ   : 0.5760

@@ -1,0 +1,8 @@
+Model       : mobilenetv3
+Target      : ms_ssim
+R2 Score    : -0.9226
+MAE         : 0.2558
+MSE         : 0.0940
+RMSE        : 0.3066
+Spearman ρ  : 0.6894
+Kendall τ   : 0.5108

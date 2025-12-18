@@ -1,8 +1,8 @@
 Model       : efficientnet
 Target      : dss
-R2 Score    : 0.1149
-MAE         : 0.1868
-MSE         : 0.0528
-RMSE        : 0.2299
+R2 Score    : -4.4718
+MAE         : 0.5307
+MSE         : 0.3267
+RMSE        : 0.5716
 Spearman ρ  : 0.2494
 Kendall τ   : 0.1646

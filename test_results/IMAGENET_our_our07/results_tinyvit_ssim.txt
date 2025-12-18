@@ -1,8 +1,8 @@
 Model       : tinyvit
 Target      : ssim
-R2 Score    : -0.0814
-MAE         : 0.2014
-MSE         : 0.0600
-RMSE        : 0.2450
+R2 Score    : -2.4523
+MAE         : 0.3847
+MSE         : 0.1917
+RMSE        : 0.4378
 Spearman ρ  : 0.2584
 Kendall τ   : 0.1690

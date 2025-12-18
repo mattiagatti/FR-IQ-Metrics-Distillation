@@ -20,8 +20,10 @@ MODELS=(mobilevitv2 resnet50v2 vit efficientnet mobilenetv3 tinyvit)
 
 # List of all supported metrics
 METRICS=(ssim fsim sr_sim vsi dss)
+#METRICS=(ms_ssim iw_ssim)
 
-CONFIG_PATH="./experiments/test_IMAGENETour_04_IMAGENETour_04.yaml"  # Config file path
+
+CONFIG_PATH="./experiments/test_IMAGENETour_IMAGENETour_07.yaml"  # Config file path
 ALSO_MOS=false                           # Whether to also test with MOS
 
 # -------------------- GPU SELECTION -------------------- #

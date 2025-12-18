@@ -1,8 +1,8 @@
 Model       : vit
 Target      : vsi
-R2 Score    : -3.3952
-MAE         : 0.1160
-MSE         : 0.0192
-RMSE        : 0.1385
+R2 Score    : 0.3697
+MAE         : 0.0409
+MSE         : 0.0028
+RMSE        : 0.0524
 Spearman ρ  : 0.7298
 Kendall τ   : 0.5351

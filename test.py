@@ -152,7 +152,7 @@ with torch.no_grad():
 
         preds = model(images).cpu().numpy().flatten()
 
-        if args.denormalize:
+        if getattr(args, "denormalize", False):
             # Denormalize predictions if model was trained on normalized targets in [0,1]
             min_s = min_score_model
             max_s = 1

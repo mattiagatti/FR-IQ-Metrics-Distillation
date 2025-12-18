@@ -1,0 +1,8 @@
+Model       : vit
+Target      : iw_ssim
+R2 Score    : 0.6360
+MAE         : 0.0884
+MSE         : 0.0129
+RMSE        : 0.1134
+Spearman ρ  : 0.8258
+Kendall τ   : 0.6295
