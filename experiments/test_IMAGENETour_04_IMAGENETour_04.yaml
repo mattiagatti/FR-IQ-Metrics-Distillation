@@ -6,6 +6,7 @@ CHECKPOINT_BASE: "/home/jovyan/nfs/lsgroi/exp/exp_IMAGENET_04"   # Base dir with
 TEST_PATH: "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/test"       # Dataset path
 IMAGE_SIZE: 384
 BATCH_SIZE: 128
+DENORMALIZE: True
 MIN_SCORE: 0.4
 MAX_SAMPLES_PER_BIN: 50
 OUTPUT_DIR: "./test_results/IMAGENET_our04_our04"

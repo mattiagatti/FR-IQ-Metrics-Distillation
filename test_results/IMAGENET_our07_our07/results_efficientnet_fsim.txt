@@ -1,8 +1,8 @@
 Model       : efficientnet
 Target      : fsim
-R2 Score    : -22.5607
-MAE         : 0.3902
-MSE         : 0.1790
-RMSE        : 0.4231
+R2 Score    : 0.6278
+MAE         : 0.0422
+MSE         : 0.0028
+RMSE        : 0.0532
 Spearman ρ  : 0.7708
 Kendall τ   : 0.5705

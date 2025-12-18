@@ -1,8 +1,8 @@
 Model       : mobilevitv2
 Target      : dss
-R2 Score    : -0.8580
-MAE         : 0.2235
-MSE         : 0.0656
-RMSE        : 0.2561
+R2 Score    : 0.4829
+MAE         : 0.1079
+MSE         : 0.0183
+RMSE        : 0.1351
 Spearman ρ  : 0.6887
 Kendall τ   : 0.4938

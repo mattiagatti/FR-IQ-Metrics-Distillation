@@ -1,8 +1,8 @@
 Model       : mobilevitv2
 Target      : vsi
-R2 Score    : -31.6252
-MAE         : 0.3288
-MSE         : 0.1307
-RMSE        : 0.3615
+R2 Score    : 0.6945
+MAE         : 0.0268
+MSE         : 0.0012
+RMSE        : 0.0350
 Spearman ρ  : 0.8469
 Kendall τ   : 0.6612

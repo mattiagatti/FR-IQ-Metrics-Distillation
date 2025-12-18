@@ -9,13 +9,13 @@ set -euo pipefail
 # ================================================================
 
 # -------------------- CONFIGURATION -------------------- #
-CONFIG_PATH="./experiments/train_IMAGENET_our_04.yaml"
+CONFIG_PATH="./experiments/train_IMAGENET_our_07.yaml"
 
 # Models to train
 MODELS=(mobilevitv2 resnet50v2 vit efficientnet mobilenetv3 tinyvit)
 
 # Metrics to train on
-METRICS=(ssim fsim sr_sim vsi dss)
+METRICS=(ssim fsim sr_sim ms_ssim iw_ssim vsi dss)
 
 # Path to Python training script
 TRAIN_PY="./train.py"
