@@ -178,6 +178,15 @@ transform = transforms.Compose([
 
 min_score, max_score = args.min_score, args.max_score
 range_suffix = f"{int(min_score * 100):03d}{int(max_score * 100):03d}"
+checkpoint_name = f"{args.model}_{args.metric}_{range_suffix}"
+checkpoint_dir = Path(args.experiment_path) / checkpoint_name
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+results_path = checkpoint_dir / "best_results.txt"
+# Resume if checkpoint exists
+if results_path.exists():
+    print ("-----The experiment was already done-------")
+    exit()
 
 # --------------------------------------------------------------------------- #
 # 4.  Dataset Loading and Filtering
@@ -276,28 +285,11 @@ optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
 r2_scores = []
-checkpoint_name = f"{args.model}_{args.metric}_{range_suffix}"
-checkpoint_dir = Path(args.experiment_path) / checkpoint_name
-checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
 best_model_path = None
 best_r2 = -np.inf
-last_checkpoint_path = checkpoint_dir / "last.pth"
 start_epoch = 0
+last_checkpoint_path = checkpoint_dir / "last.pth"
 
-# Resume if checkpoint exists
-if last_checkpoint_path.exists():
-    print ("-----The experiment was already done-------")
-    exit()
-    print(f"Found checkpoint: {last_checkpoint_path}")
-    checkpoint = torch.load(last_checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-    print (checkpoint.keys())
-    best_r2 = checkpoint.get('best_r2', -np.inf)
-    start_epoch = checkpoint.get('epoch', 0)
-    print(f"Resuming from epoch {start_epoch}, best R2: {best_r2:.4f}")
 
 # --------------------------------------------------------------------------- #
 # 6.  Training Loop
