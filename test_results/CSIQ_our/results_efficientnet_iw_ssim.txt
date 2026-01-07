@@ -1,0 +1,9 @@
+Model       : efficientnet
+Target      : iw_ssim
+R2 Score    : 0.3076
+MAE         : 0.1017
+MSE         : 0.0153
+RMSE        : 0.1235
+Spearman ρ  : 0.5897
+Kendall τ   : 0.4196
+PLCC        : 0.7143

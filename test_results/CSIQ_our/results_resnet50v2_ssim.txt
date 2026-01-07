@@ -1,0 +1,9 @@
+Model       : resnet50v2
+Target      : ssim
+R2 Score    : 0.5528
+MAE         : 0.0815
+MSE         : 0.0108
+RMSE        : 0.1038
+Spearman ρ  : 0.7408
+Kendall τ   : 0.5433
+PLCC        : 0.7729

@@ -1,0 +1,9 @@
+Model       : efficientnet
+Target      : sr_sim
+R2 Score    : -0.9606
+MAE         : 0.2856
+MSE         : 0.1351
+RMSE        : 0.3676
+Spearman ρ  : 0.4210
+Kendall τ   : 0.2868
+PLCC        : 0.4447

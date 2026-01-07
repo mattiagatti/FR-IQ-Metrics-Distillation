@@ -1,0 +1,9 @@
+Model       : mobilenetv3
+Target      : fsim
+R2 Score    : 0.3362
+MAE         : 0.0649
+MSE         : 0.0063
+RMSE        : 0.0795
+Spearman ρ  : 0.4741
+Kendall τ   : 0.3291
+PLCC        : 0.6399

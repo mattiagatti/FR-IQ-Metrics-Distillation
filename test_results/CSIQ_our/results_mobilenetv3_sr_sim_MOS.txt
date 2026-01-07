@@ -1,0 +1,9 @@
+Model       : mobilenetv3
+Target      : sr_sim
+R2 Score    : -0.9691
+MAE         : 0.2846
+MSE         : 0.1357
+RMSE        : 0.3684
+Spearman ρ  : 0.3567
+Kendall τ   : 0.2391
+PLCC        : 0.4291
