@@ -85,7 +85,7 @@ for base_exp_dir in EXPERIMENT_DIRS:
                 y_true = df[true_col].values
                 y_pred = df[pred_col].values
             else:
-                print(f"[Skip] Missing required columns in {csv_path}")
+                print(f"[Skip] Missing required columns [{denorm_true_col}, {denorm_pred_col}, {true_col}, {pred_col}] in {csv_path}")
                 continue
             
             # Calcola le metriche
