@@ -1,6 +1,6 @@
-# SSIM Regression on ImageNet
+# Distilling Full-Reference Image Quality Metrics into Neural No-Reference Surrogates
 
-Train deep learning models to **predict SSIM scores** from images using various popular vision backbones.
+Train deep learning models to **predict FR metrics** from images using various popular vision backbones.
 
 ---
 
