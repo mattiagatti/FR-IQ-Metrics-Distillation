@@ -12,44 +12,46 @@ import argparse
 
 
 class Degrader:
-    def __init__(self, root_dir, degradation_types=None, min_resolution=(384, 384), cache_file=None, min_degradations=None, max_degradations=None):
+    def __init__(self, root_dir, paths_txt, degradation_types=None, min_resolution=(384, 384), min_degradations=None, max_degradations=None):
         self.root_dir = Path(root_dir)
+        self.paths_txt = Path(paths_txt)
         self.min_degradations = min_degradations
         self.max_degradations = max_degradations
 
-        if cache_file:
-            cache_path = self.root_dir / cache_file
-        else:
-            cache_path = None
+        if not self.paths_txt.exists():
+            raise FileNotFoundError(f"Input txt file not found: {self.paths_txt}")
 
-        if cache_path and cache_path.exists():
-            print(f"[Cache] Loading valid image paths from {cache_path}")
-            with open(cache_path, 'r') as f:
-                valid_paths = [Path(line.strip()) for line in f if line.strip()]
-        else:
-            print(f"[Scan] Filtering low-resolution images in {self.root_dir.name}...")
-            all_image_paths = sorted([
-                p for p in self.root_dir.rglob("*")
-                if p.suffix.lower() in [".jpg", ".jpeg", ".png"]
-            ])
-
-            valid_paths = []
-            for path in tqdm(all_image_paths, desc=f"Filtering {self.root_dir.name}"):
-                try:
-                    with Image.open(path) as img:
-                        if img.width >= min_resolution[0] and img.height >= min_resolution[1]:
-                            valid_paths.append(path)
-                except Exception:
+        print(f"[Load] Reading image paths from {self.paths_txt}")
+        listed_paths = []
+        with open(self.paths_txt, 'r', encoding='utf-8') as f:
+            for line in f:
+                rel_path = line.strip()
+                if not rel_path or rel_path.startswith('#'):
                     continue
+                img_path = Path(rel_path)
+                if not img_path.is_absolute():
+                    img_path = self.root_dir / img_path
+                listed_paths.append(img_path)
 
-            if not valid_paths:
-                raise ValueError(f"No valid images found in {self.root_dir} after filtering.")
+        listed_paths = sorted(listed_paths)
 
-            if cache_path:
-                with open(cache_path, 'w') as f:
-                    for p in valid_paths:
-                        f.write(str(p) + '\n')
-                print(f"[Cache] Saved {len(valid_paths)} paths to {cache_path}")
+        valid_paths = []
+        for path in tqdm(listed_paths, desc=f"Filtering {self.root_dir.name}"):
+            if path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
+                continue
+            if not path.exists() or not path.is_file():
+                continue
+            try:
+                with Image.open(path) as img:
+                    if img.width >= min_resolution[0] and img.height >= min_resolution[1]:
+                        valid_paths.append(path)
+            except Exception:
+                continue
+
+        if not valid_paths:
+            raise ValueError(
+                f"No valid images found from list {self.paths_txt} under root {self.root_dir} after filtering."
+            )
 
         self.image_paths = valid_paths
         self.degradation_types = degradation_types or [
@@ -166,13 +168,8 @@ class Degrader:
             return img, {
                 'ssim': 1.0,
                 'fsim': 1.0,
-                'ms_ssim': 1.0,
                 'iw_ssim': 1.0,
-                'sr_sim': 1.0,
-                'vsi': 1.0,
-                'dss': 1.0,
-                'haarpsi': 1.0,
-                'mdsi': 1.0
+                'sr_sim': 1.0
             }
 
         params = self._get_degradation_params()
@@ -183,24 +180,15 @@ class Degrader:
 
         ssim_score = ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         fsim_score = fsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        ms_ssim_score = multi_scale_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         iw_ssim_score = information_weighted_ssim(sharp_tensor, degraded_tensor, data_range=1.0).item()
         sr_sim_score = srsim(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        vsi_score = vsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        dss_score = dss(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        haarpsi_score = haarpsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
-        mdsi_score = mdsi(sharp_tensor, degraded_tensor, data_range=1.0).item()
+        
 
         metrics = {
             'ssim': ssim_score,
             'fsim': fsim_score,
-            'ms_ssim': ms_ssim_score,
             'iw_ssim': iw_ssim_score,
-            'sr_sim': sr_sim_score,
-            'vsi': vsi_score,
-            'dss': dss_score,
-            'haarpsi': haarpsi_score,
-            'mdsi': mdsi_score
+            'sr_sim': sr_sim_score
         }
 
         return Image.fromarray(degraded_np), metrics
@@ -240,7 +228,7 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
                 scores.append(result)
     
 
-    metrics_list = ['ssim', 'fsim', 'ms_ssim', 'iw_ssim', 'sr_sim', 'vsi', 'dss', 'haarpsi', 'mdsi']
+    metrics_list = ['ssim', 'fsim', 'iw_ssim', 'sr_sim']
     csv_path = output_dir / "scores.csv"
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -249,7 +237,6 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
             writer.writerow([filename] + [metrics.get(key, "") for key in metrics_list])
 
     import collections
-    import math
 
     def fine_bin(score):
         bin_floor = int(score * 100)
@@ -257,44 +244,20 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
 
     ssim_hist = collections.Counter()
     fsim_hist = collections.Counter()
-    ms_ssim_hist = collections.Counter()
     iw_ssim_hist = collections.Counter()
-    vif_p_hist = collections.Counter()
     sr_sim_hist = collections.Counter()
-    gmsd_hist = collections.Counter()
-    ms_gmsd_hist = collections.Counter()
-    vsi_hist = collections.Counter()
-    dss_hist = collections.Counter()
-    haarpsi_hist = collections.Counter()
-    mdsi_hist = collections.Counter()
 
     for _, metrics in scores:
         ssim_hist[fine_bin(metrics['ssim'])] += 1
         fsim_hist[fine_bin(metrics['fsim'])] += 1
-        ms_ssim_hist[fine_bin(metrics['ms_ssim'])] += 1
         iw_ssim_hist[fine_bin(metrics['iw_ssim'])] += 1
-        vif_p_hist[fine_bin(metrics['vif_p'])] += 1
         sr_sim_hist[fine_bin(metrics['sr_sim'])] += 1
-        gmsd_hist[fine_bin(metrics['gmsd'])] += 1
-        ms_gmsd_hist[fine_bin(metrics['ms_gmsd'])] += 1
-        vsi_hist[fine_bin(metrics['vsi'])] += 1
-        dss_hist[fine_bin(metrics['dss'])] += 1
-        haarpsi_hist[fine_bin(metrics['haarpsi'])] += 1
-        mdsi_hist[fine_bin(metrics['mdsi'])] += 1
 
     metrics_hists = [
         ("SSIM", ssim_hist),
         ("FSIM", fsim_hist),
-        ("MS-SSIM", ms_ssim_hist),
         ("IW-SSIM", iw_ssim_hist),
-        ("VIF-P", vif_p_hist),
-        ("SR-SIM", sr_sim_hist),
-        ("GMSD", gmsd_hist),
-        ("MS-GMSD", ms_gmsd_hist),
-        ("VSI", vsi_hist),
-        ("DSS", dss_hist),
-        ("HaarPSI", haarpsi_hist),
-        ("MDSI", mdsi_hist),
+        ("SR-SIM", sr_sim_hist)
     ]
 
     # Save histograms to a text file (and also print to stdout)
@@ -321,23 +284,27 @@ if __name__ == "__main__":
                     help="Minimum number of degradations to apply.")
     parser.add_argument("--max-degradations", type=int, default=None,
                     help="Maximum number of degradations to apply.")
+    parser.add_argument("--root-dir", type=str, required=True,
+                    help="Root directory used to resolve relative image paths listed in --input-txt.")
+    parser.add_argument("--input-txt", type=str, required=True,
+                    help="Txt file containing one relative image path per line (relative to --root-dir).")
+    parser.add_argument("--output-dir", type=str, required=True,
+                    help="Output directory where degraded images and scores.csv will be saved.")
+    parser.add_argument("--num-threads", type=int, default=16,
+                    help="Number of worker threads used for processing images.")
     args = parser.parse_args()
 
-    dataset_paths = {
-        "train": "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/train",
-        "val": "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/val",
-        "test": "/home/jovyan/nfs/datasets/ILSVRC2012_degraded/test",
-    }
+    output_dir = Path(args.output_dir)
+    if output_dir.exists() and (output_dir / "scores.csv").exists():
+        print(f"[Skip] Output already exists at {output_dir}, skipping.")
+    else:
+        degrader = Degrader(
+            root_dir=args.root_dir,
+            paths_txt=args.input_txt,
+            min_resolution=(384, 384),
+            min_degradations=args.min_degradations,
+            max_degradations=args.max_degradations,
+        )
 
-    for name, output_base in dataset_paths.items():
-        input_path = output_base.replace("_degraded", "")
-        output_dir = Path(output_base)
-
-        if output_dir.exists() and (output_dir / "scores.csv").exists():
-            print(f"[Skip] {name} already exists at {output_dir}, skipping.")
-            continue
-
-        degrader = Degrader(root_dir=input_path, min_resolution=(384, 384), cache_file="valid_paths.txt", min_degradations=args.min_degradations, max_degradations=args.max_degradations)
-
-        print(f"Processing ImageNet {name} set with {len(degrader.image_paths)} images...")
-        save_metrics_and_csv(degrader, output_dir=output_dir, num_threads=16)
+        print(f"Processing image list with {len(degrader.image_paths)} images...")
+        save_metrics_and_csv(degrader, output_dir=output_dir, num_threads=args.num_threads)

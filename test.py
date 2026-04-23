@@ -72,6 +72,8 @@ if args.config_path:
         raise FileNotFoundError(f"Expected checkpoint not found: {checkpoint_path}")
     setattr(args, 'checkpoint', str(checkpoint_path))
 
+    if not hasattr(args, "min_score"):
+        args.min_score = 0
 
 
 # --------------------------------------------------------------------------- #
@@ -151,14 +153,13 @@ with torch.no_grad():
             targets = metrics_dict[args.metric].unsqueeze(1).to(device)
 
         preds = model(images).cpu().numpy().flatten()
-
+        targets_np = targets.cpu().numpy().flatten()
         if getattr(args, "denormalize", False):
             # Denormalize predictions if model was trained on normalized targets in [0,1]
             min_s = min_score_model
             max_s = 1
-            preds = preds * (max_s - min_s) + min_s
-
-        targets_np = targets.cpu().numpy().flatten()
+            # Normalize targets to [0,1] using the same range as training
+            targets_np = (targets_np - min_s) / (max_s - min_s)
 
         y_pred.extend(preds)
         y_true.extend(targets_np)
