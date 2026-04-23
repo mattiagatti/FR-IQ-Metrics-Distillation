@@ -9,6 +9,9 @@ from piq import ssim, fsim, multi_scale_ssim, information_weighted_ssim, vif_p, 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import argparse
+from collections import defaultdict
+
+#python3 misc/generate_dataset.py --root-dir /tmp --input-txt train.txt --output-dir /home/jovyan/nfs/lsgroi/Datasets/Medical_degraded/train --min-degradations 1 --max-degradations 5 --num-threads 16
 
 mappingPath= {
     "DERM7pt-clinic": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/DERM7pt-clinic"),
@@ -48,7 +51,7 @@ class Degrader:
         def _resolve_mapped_path(path_str: str):
             img_path = Path(path_str)
             if img_path.is_absolute():
-                return img_path
+                return "ABSOLUTE", img_path
 
             parts = img_path.parts
 
@@ -60,34 +63,35 @@ class Degrader:
                     raise KeyError(
                         f"Dataset '{dataset_name}' not found in mappingPath for input line path: {path_str}"
                     )
-                return mappingPath[dataset_name].joinpath(*parts[2:])
+                return dataset_name, mappingPath[dataset_name].joinpath(*parts[2:])
 
             # Also support paths starting directly with dataset key.
             if len(parts) >= 1 and parts[0] in mappingPath:
-                return mappingPath[parts[0]].joinpath(*parts[1:])
+                dataset_name = parts[0]
+                return dataset_name, mappingPath[dataset_name].joinpath(*parts[1:])
 
             # Fallback to ROOT_DIR-based resolution for non-mapped inputs.
-            return self.root_dir / img_path
+            return "ROOT_DIR", self.root_dir / img_path
 
         print(f"[Load] Reading image paths from {self.paths_txt}")
-        listed_paths = []
+        listed_entries = []
         with open(self.paths_txt, 'r', encoding='utf-8') as f:
             for line in f:
                 rel_path = _extract_path_from_line(line)
                 if rel_path is None:
                     continue
-                img_path = _resolve_mapped_path(rel_path)
-                listed_paths.append(img_path)
+                dataset_name, img_path = _resolve_mapped_path(rel_path)
+                listed_entries.append((dataset_name, rel_path, img_path))
 
-        listed_paths = sorted(listed_paths)
+        listed_entries = sorted(listed_entries, key=lambda x: str(x[2]))
 
         valid_paths = []
-        missing_paths = []
-        for path in tqdm(listed_paths, desc=f"Filtering {self.root_dir.name}"):
+        missing_by_dataset = defaultdict(list)
+        for dataset_name, original_rel_path, path in tqdm(listed_entries, desc=f"Filtering {self.root_dir.name}"):
             if path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
                 continue
             if not path.exists() or not path.is_file():
-                missing_paths.append(path)
+                missing_by_dataset[dataset_name].append((original_rel_path, path))
                 continue
             try:
                 with Image.open(path) as img:
@@ -96,11 +100,19 @@ class Degrader:
             except Exception:
                 continue
 
-        if missing_paths:
-            preview = "\n".join(str(p) for p in missing_paths[:20])
-            more = "" if len(missing_paths) <= 20 else f"\n... and {len(missing_paths) - 20} more"
+        if missing_by_dataset:
+            print("\n[Missing] Dataset e istanze mancanti:")
+            total_missing = 0
+            for dataset_name in sorted(missing_by_dataset.keys()):
+                missing_instances = missing_by_dataset[dataset_name]
+                total_missing += len(missing_instances)
+                print(f"- {dataset_name}: {len(missing_instances)}")
+                for original_rel_path, resolved_path in missing_instances:
+                    print(f"    rel: {original_rel_path}")
+                    print(f"    abs: {resolved_path}")
+
             raise FileNotFoundError(
-                f"Found {len(missing_paths)} missing image(s) referenced in {self.paths_txt}:\n{preview}{more}"
+                f"Found {total_missing} missing image(s) referenced in {self.paths_txt}. See grouped list above."
             )
 
         if not valid_paths:
