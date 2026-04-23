@@ -10,6 +10,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import argparse
 
+mappingPath= {
+    "DERM7pt-clinic": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/DERM7pt-clinic"),
+    "MCR-SL": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic+derm/MCR-SL"),
+    "MRA-MIDAS": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic+derm/MRA-MIDAS"),
+    "PAD-UFES-20": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/PAD-UFES-20"),
+    "bcn20k": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/bcn20k"),
+    "ham10k": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/ham10k"),
+    "derm12345": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/derm12345"),
+    "isic_archive_d3": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/isic_archive_d3"),
+    "isic_archive_d4": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/isic_archive_d4"),
+}
+
 
 class Degrader:
     def __init__(self, root_dir, paths_txt, degradation_types=None, min_resolution=(384, 384), min_degradations=None, max_degradations=None):
@@ -21,25 +33,61 @@ class Degrader:
         if not self.paths_txt.exists():
             raise FileNotFoundError(f"Input txt file not found: {self.paths_txt}")
 
+        def _extract_path_from_line(line: str):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                return None
+
+            # Expected format: "relative/path/to/image.jpg <class_id>"
+            # Keep full path even when it contains spaces, drop trailing numeric class label.
+            split_line = line.rsplit(maxsplit=1)
+            if len(split_line) == 2 and split_line[1].lstrip("+-").isdigit():
+                return split_line[0]
+            return line
+
+        def _resolve_mapped_path(path_str: str):
+            img_path = Path(path_str)
+            if img_path.is_absolute():
+                return img_path
+
+            parts = img_path.parts
+
+            # Format example:
+            # medical_combined/DERM7pt-clinic/val/.../image.jpg
+            if len(parts) >= 2 and parts[0] == "medical_combined":
+                dataset_name = parts[1]
+                if dataset_name not in mappingPath:
+                    raise KeyError(
+                        f"Dataset '{dataset_name}' not found in mappingPath for input line path: {path_str}"
+                    )
+                return mappingPath[dataset_name].joinpath(*parts[2:])
+
+            # Also support paths starting directly with dataset key.
+            if len(parts) >= 1 and parts[0] in mappingPath:
+                return mappingPath[parts[0]].joinpath(*parts[1:])
+
+            # Fallback to ROOT_DIR-based resolution for non-mapped inputs.
+            return self.root_dir / img_path
+
         print(f"[Load] Reading image paths from {self.paths_txt}")
         listed_paths = []
         with open(self.paths_txt, 'r', encoding='utf-8') as f:
             for line in f:
-                rel_path = line.strip()
-                if not rel_path or rel_path.startswith('#'):
+                rel_path = _extract_path_from_line(line)
+                if rel_path is None:
                     continue
-                img_path = Path(rel_path)
-                if not img_path.is_absolute():
-                    img_path = self.root_dir / img_path
+                img_path = _resolve_mapped_path(rel_path)
                 listed_paths.append(img_path)
 
         listed_paths = sorted(listed_paths)
 
         valid_paths = []
+        missing_paths = []
         for path in tqdm(listed_paths, desc=f"Filtering {self.root_dir.name}"):
             if path.suffix.lower() not in [".jpg", ".jpeg", ".png"]:
                 continue
             if not path.exists() or not path.is_file():
+                missing_paths.append(path)
                 continue
             try:
                 with Image.open(path) as img:
@@ -47,6 +95,13 @@ class Degrader:
                         valid_paths.append(path)
             except Exception:
                 continue
+
+        if missing_paths:
+            preview = "\n".join(str(p) for p in missing_paths[:20])
+            more = "" if len(missing_paths) <= 20 else f"\n... and {len(missing_paths) - 20} more"
+            raise FileNotFoundError(
+                f"Found {len(missing_paths)} missing image(s) referenced in {self.paths_txt}:\n{preview}{more}"
+            )
 
         if not valid_paths:
             raise ValueError(
