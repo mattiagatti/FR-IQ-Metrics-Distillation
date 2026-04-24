@@ -16,7 +16,7 @@ from itertools import repeat
 
 mappingPath= {
     "DERM7pt-clinic": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/DERM7pt-clinic"),
-    "DERM7pt-derm": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/DERM7pt-clinic"),
+    "DERM7pt-derm": Path("/home/jovyan/nfs/igallo/datasets/OOD/dermatoscopic/DERM7pt-derm"),
     "MCR-SL": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic+derm/MCR-SL"),
     "MRA-MIDAS": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic+derm/MRA-MIDAS"),
     "PAD-UFES-20": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/PAD-UFES-20"),
