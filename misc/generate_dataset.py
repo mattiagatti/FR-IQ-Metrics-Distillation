@@ -12,7 +12,7 @@ import argparse
 from collections import defaultdict
 from itertools import repeat
 
-#python3 misc/generate_dataset.py --root-dir /tmp --input-txt train.txt --output-dir /home/jovyan/nfs/lsgroi/Datasets/Medical_degraded/train --min-degradations 1 --max-degradations 5 --num-threads 16
+#python misc/generate_dataset.py --root-dir /tmp --input-txt train.txt --output-dir /home/jovyan/nfs/lsgroi/Datasets/Medical_degraded/train --min-degradations 1 --max-degradations 5 --num-threads 16
 
 mappingPath= {
     "DERM7pt-clinic": Path("/home/jovyan/nfs/igallo/datasets/OOD/clinic/DERM7pt-clinic"),
@@ -287,6 +287,14 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     csv_path = output_dir / "scores.csv"
     existing_scores = {}
 
+    def _write_scores_csv(scores_dict):
+        with open(csv_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["filename"] + metrics_list)
+            for filename in sorted(scores_dict.keys()):
+                metrics = scores_dict[filename]
+                writer.writerow([filename] + [metrics.get(key, "") for key in metrics_list])
+
     if csv_path.exists():
         with open(csv_path, 'r', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -304,21 +312,23 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
                 except (TypeError, ValueError):
                     continue
 
-    already_processed = {
+    pending_paths = [
+        path for path in degrader.image_paths
+        if (path.stem + ".png") not in existing_scores
+    ]
+
+    already_processed_images = {
         p.name for p in output_dir.glob("*.png")
     }
 
-    pending_paths = [
-        path for path in degrader.image_paths
-        if (path.stem + ".png") not in already_processed
-    ]
-
     print(
-        f"[Resume] Found {len(already_processed)} already processed image(s). "
-        f"Processing {len(pending_paths)} new image(s)."
+        f"[Resume] Found {len(existing_scores)} image(s) with metrics in scores.csv, "
+        f"{len(already_processed_images)} output image(s), "
+        f"processing {len(pending_paths)} image(s) missing metrics."
     )
 
-    new_scores = []
+    merged_scores = dict(existing_scores)
+
     if pending_paths:
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             iterator = executor.map(
@@ -327,20 +337,18 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
                 repeat(degrader),
                 repeat(output_dir),
             )
+            processed_since_checkpoint = 0
             for result in tqdm(iterator, total=len(pending_paths), desc=f"Processing {degrader.root_dir.name}"):
                 if result:
-                    new_scores.append(result)
+                    filename, metrics = result
+                    merged_scores[filename] = metrics
+                    processed_since_checkpoint += 1
 
-    merged_scores = dict(existing_scores)
-    for filename, metrics in new_scores:
-        merged_scores[filename] = metrics
+                    if processed_since_checkpoint >= 100:
+                        _write_scores_csv(merged_scores)
+                        processed_since_checkpoint = 0
 
-    with open(csv_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["filename"] + metrics_list)
-        for filename in sorted(merged_scores.keys()):
-            metrics = merged_scores[filename]
-            writer.writerow([filename] + [metrics.get(key, "") for key in metrics_list])
+    _write_scores_csv(merged_scores)
 
     import collections
 
