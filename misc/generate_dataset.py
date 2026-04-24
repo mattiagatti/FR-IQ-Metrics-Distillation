@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
 import argparse
 from collections import defaultdict
+from itertools import repeat
 
 #python3 misc/generate_dataset.py --root-dir /tmp --input-txt train.txt --output-dir /home/jovyan/nfs/lsgroi/Datasets/Medical_degraded/train --min-degradations 1 --max-degradations 5 --num-threads 16
 
@@ -282,26 +283,63 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    scores = []
-
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        futures = {
-            executor.submit(_process_single_image, path, degrader, output_dir): path
-            for path in degrader.image_paths
-        }
-
-        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Processing {degrader.root_dir.name}"):
-            result = future.result()
-            if result:
-                scores.append(result)
-    
-
     metrics_list = ['ssim', 'fsim', 'iw_ssim', 'sr_sim']
     csv_path = output_dir / "scores.csv"
+    existing_scores = {}
+
+    if csv_path.exists():
+        with open(csv_path, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                filename = row.get("filename")
+                if not filename:
+                    continue
+                try:
+                    existing_scores[filename] = {
+                        'ssim': float(row.get('ssim', 0.0)),
+                        'fsim': float(row.get('fsim', 0.0)),
+                        'iw_ssim': float(row.get('iw_ssim', 0.0)),
+                        'sr_sim': float(row.get('sr_sim', 0.0)),
+                    }
+                except (TypeError, ValueError):
+                    continue
+
+    already_processed = {
+        p.name for p in output_dir.glob("*.png")
+    }
+
+    pending_paths = [
+        path for path in degrader.image_paths
+        if (path.stem + ".png") not in already_processed
+    ]
+
+    print(
+        f"[Resume] Found {len(already_processed)} already processed image(s). "
+        f"Processing {len(pending_paths)} new image(s)."
+    )
+
+    new_scores = []
+    if pending_paths:
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            iterator = executor.map(
+                _process_single_image,
+                pending_paths,
+                repeat(degrader),
+                repeat(output_dir),
+            )
+            for result in tqdm(iterator, total=len(pending_paths), desc=f"Processing {degrader.root_dir.name}"):
+                if result:
+                    new_scores.append(result)
+
+    merged_scores = dict(existing_scores)
+    for filename, metrics in new_scores:
+        merged_scores[filename] = metrics
+
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["filename"] + metrics_list)
-        for filename, metrics in scores:
+        for filename in sorted(merged_scores.keys()):
+            metrics = merged_scores[filename]
             writer.writerow([filename] + [metrics.get(key, "") for key in metrics_list])
 
     import collections
@@ -315,7 +353,7 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     iw_ssim_hist = collections.Counter()
     sr_sim_hist = collections.Counter()
 
-    for _, metrics in scores:
+    for metrics in merged_scores.values():
         ssim_hist[fine_bin(metrics['ssim'])] += 1
         fsim_hist[fine_bin(metrics['fsim'])] += 1
         iw_ssim_hist[fine_bin(metrics['iw_ssim'])] += 1
