@@ -353,7 +353,10 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     import collections
 
     def fine_bin(score):
+        if score is None or not np.isfinite(score):
+            return None
         bin_floor = int(score * 100)
+        bin_floor = max(0, min(99, bin_floor))
         return f"{bin_floor:02d}-{bin_floor + 1:02d}"  # e.g., "85-86"
 
     ssim_hist = collections.Counter()
@@ -362,10 +365,21 @@ def save_metrics_and_csv(degrader, output_dir, num_threads=16):
     sr_sim_hist = collections.Counter()
 
     for metrics in merged_scores.values():
-        ssim_hist[fine_bin(metrics['ssim'])] += 1
-        fsim_hist[fine_bin(metrics['fsim'])] += 1
-        iw_ssim_hist[fine_bin(metrics['iw_ssim'])] += 1
-        sr_sim_hist[fine_bin(metrics['sr_sim'])] += 1
+        ssim_bin = fine_bin(metrics.get('ssim'))
+        if ssim_bin is not None:
+            ssim_hist[ssim_bin] += 1
+
+        fsim_bin = fine_bin(metrics.get('fsim'))
+        if fsim_bin is not None:
+            fsim_hist[fsim_bin] += 1
+
+        iw_ssim_bin = fine_bin(metrics.get('iw_ssim'))
+        if iw_ssim_bin is not None:
+            iw_ssim_hist[iw_ssim_bin] += 1
+
+        sr_sim_bin = fine_bin(metrics.get('sr_sim'))
+        if sr_sim_bin is not None:
+            sr_sim_hist[sr_sim_bin] += 1
 
     metrics_hists = [
         ("SSIM", ssim_hist),
